@@ -101,12 +101,12 @@ const SPAWN_AHEAD = 200;
 const SPAWN_GAP_MIN = 12;
 const SPAWN_GAP_MAX = 20;
 const INITIAL_SPAWN_Z = -55;
-// Density tuned for performance: 48 buildings × 9m spacing instead of
-// 64 × 7m. Same visible density (~10 visible at any time) but ~25% fewer
-// total objects in scene → 25% less geometry, materials, shadows. Road
-// still feels enclosed.
-const BUILDING_COUNT = 48;
-const BUILDING_SPACING = 9;
+// Subway-tight density: front row at every Z step, back row STAGGERED by
+// half-spacing so it fills the gaps in front row. Result: continuous
+// wall of buildings on both sides — Oscar: "binaların arası asla boş
+// olmayacak full kapalı estetik".
+const BUILDING_COUNT = 56;
+const BUILDING_SPACING = 6;
 const PROP_COUNT = 36;
 const PROP_SPACING = 8;
 
@@ -454,7 +454,12 @@ export class World {
         m.receiveShadow = true;
       }
     });
-    const baseZ = -Math.floor(slot / 4) * BUILDING_SPACING - Math.random() * 1.5;
+    // Half-step stagger for back row: front row at multiples of SPACING,
+    // back row offset by SPACING/2 so it sits BETWEEN front-row z-positions.
+    // This is brick-layout — guaranteed gap-fill behind the front wall.
+    const zStep = Math.floor(slot / 4) * BUILDING_SPACING;
+    const staggerOffset = isFrontRow ? 0 : BUILDING_SPACING * 0.5;
+    const baseZ = -(zStep + staggerOffset) - Math.random() * 0.6;
     // Position so the building's ROAD-FACING EDGE lines up at a fixed
     // distance from road center — Subway-style "wall of buildings" right
     // at the curb, regardless of building width. Wide buildings push out
