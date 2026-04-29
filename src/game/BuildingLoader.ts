@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { ASSET_BASE } from "./AssetBase";
 
 /**
  * Loads themed 3D building GLBs (Meshy-generated) lazily, caches them, and
@@ -99,7 +100,7 @@ export async function loadBuildingModel(name: string): Promise<THREE.Group | nul
     const r = await inflight.get(name)!;
     return r ? cloneAndPrep(r) : null;
   }
-  const url = `/models/buildings/${name}.glb?v=${__BUILD_VERSION__}`;
+  const url = `${ASSET_BASE}/models/buildings/${name}.glb?v=${__BUILD_VERSION__}`;
   const p = (async (): Promise<THREE.Group | null> => {
     try {
       const gltf = await loader.loadAsync(url);

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { ASSET_BASE } from "./AssetBase";
 
 const TARGET_HEIGHT = 6;
 const loader = new GLTFLoader();
@@ -17,7 +18,7 @@ export async function loadFlagModel(themeId: string): Promise<THREE.Group | null
   }
   const p = (async () => {
     try {
-      const gltf = await loader.loadAsync(`/models/flags/${themeId}.glb?v=${__BUILD_VERSION__}`);
+      const gltf = await loader.loadAsync(`${ASSET_BASE}/models/flags/${themeId}.glb?v=${__BUILD_VERSION__}`);
       const m = gltf.scene;
       const bbox = new THREE.Box3().setFromObject(m);
       const size = bbox.getSize(new THREE.Vector3());

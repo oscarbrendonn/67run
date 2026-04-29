@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { ASSET_BASE } from "./AssetBase";
 
 // Per-kind VISUAL height — how tall the obstacle renders.
 // Collision behavior is decided by dodgeType (jump/slide/lane), not visual height.
@@ -121,7 +122,7 @@ function getThemeObstacleList(themeId: string): string[] {
 }
 
 export async function loadObstacleModel(kind: string): Promise<THREE.Group | null> {
-  const url = `/models/obstacles/${kind}.glb?v=${__BUILD_VERSION__}`;
+  const url = `${ASSET_BASE}/models/obstacles/${kind}.glb?v=${__BUILD_VERSION__}`;
   if (cache.has(kind)) {
     return cloneAndPrep(cache.get(kind)!);
   }

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { ASSET_BASE } from "./AssetBase";
 
 /**
  * Loads themed bridge GLBs (Meshy-generated) lazily, caches them, returns a
@@ -24,7 +25,7 @@ export async function loadBridgeModel(themeId: string): Promise<THREE.Group | nu
     const r = await inflight.get(themeId)!;
     return r ? cloneAndPrep(r) : null;
   }
-  const url = `/models/bridges/${themeId}.glb?v=${__BUILD_VERSION__}`;
+  const url = `${ASSET_BASE}/models/bridges/${themeId}.glb?v=${__BUILD_VERSION__}`;
   const p = (async (): Promise<THREE.Group | null> => {
     try {
       const gltf = await loader.loadAsync(url);

@@ -3,3 +3,6 @@ dist
 .DS_Store
 *.log
 .vite
+
+# Models served via CDN (separate repo: 67run-assets)
+public/models/

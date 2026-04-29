@@ -1,19 +1,18 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { ASSET_BASE } from "./AssetBase";
 
 export type MavState = "idle" | "run" | "jump" | "slide" | "dead";
 
-// Per-build cache-bust query — appended to every fetch so a fresh deploy
-// can never get served a stale Mav GLB out of the browser cache.
 const V = `?v=${__BUILD_VERSION__}`;
-const MODEL_BASE = "/models/mav-final-rigged.glb" + V;
+const MODEL_BASE = `${ASSET_BASE}/models/mav-final-rigged.glb${V}`;
 const ANIMATIONS: Record<Exclude<MavState, "idle">, string> = {
-  run: "/models/mav-final-running.glb" + V,
-  jump: "/models/mav-final-jump.glb" + V,
-  slide: "/models/mav-final-slide.glb" + V,
-  dead: "/models/mav-final-dead.glb" + V,
+  run:   `${ASSET_BASE}/models/mav-final-running.glb${V}`,
+  jump:  `${ASSET_BASE}/models/mav-final-jump.glb${V}`,
+  slide: `${ASSET_BASE}/models/mav-final-slide.glb${V}`,
+  dead:  `${ASSET_BASE}/models/mav-final-dead.glb${V}`,
 };
-const IDLE_FILE = "/models/mav-final-idle.glb" + V;
+const IDLE_FILE = `${ASSET_BASE}/models/mav-final-idle.glb${V}`;
 
 /**
  * MavGLB — wraps Meshy-generated rigged Mav model with multiple animations.
