@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0b0f1a" />
+    <title>67 Runner — Mav World Tour</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+
+      <div id="hud">
+        <div class="hud-row">
+          <div class="hud-pill">
+            <span class="hud-label">SCORE</span>
+            <span id="score" class="hud-value">0</span>
+          </div>
+          <div class="hud-pill gold">
+            <span class="hud-coin">67</span>
+            <span id="coins" class="hud-value">0</span>
+          </div>
+          <div class="hud-pill danger">
+            <span class="hud-label">DIST</span>
+            <span id="distance" class="hud-value">0m</span>
+          </div>
+          <div class="hud-pill city">
+            <span id="city-flag" class="city-flag">US</span>
+            <span id="city-name" class="hud-value">NEW YORK</span>
+          </div>
+        </div>
+      </div>
+      <span id="level" style="display:none">1</span>
+
+      <div id="city-banner" class="banner hidden">
+        <div class="banner-inner">
+          <div id="banner-flag" class="banner-flag">US</div>
+          <div class="banner-texts">
+            <div class="banner-welcome">WELCOME TO</div>
+            <div id="banner-city" class="banner-city">NEW YORK</div>
+            <div id="banner-country" class="banner-country">USA</div>
+          </div>
+        </div>
+      </div>
+
+      <span id="levelup-toast" style="display:none"><span id="levelup-n">2</span></span>
+
+      <div id="fly-meter" class="fly-meter hidden">
+        <div class="fly-label">✈ FLY CAR</div>
+        <div class="fly-bar-wrap"><div id="fly-bar" class="fly-bar"></div></div>
+        <div id="fly-remaining" class="fly-remaining">100m</div>
+      </div>
+
+      <div id="fly-toast" class="fly-toast hidden">
+        <div class="fly-toast-inner">🚗 FLYING CAR!</div>
+      </div>
+
+      <div id="start-screen" class="overlay">
+        <div class="overlay-card">
+          <div class="logo">
+            <span class="logo-67">67</span>
+            <span class="logo-sub">RUNNER</span>
+            <span class="logo-tour">WORLD TOUR</span>
+          </div>
+          <p class="tagline">Mav's on the run across NYC, Rio, Paris, Tokyo, Istanbul & more.<br/>Dodge the 67Kid. Grab every 67 coin.</p>
+
+          <div class="username-block">
+            <label class="username-label" for="username-input">YOUR NAME</label>
+            <input id="username-input" class="username-input" type="text" maxlength="14" placeholder="MAV67" autocomplete="off" />
+          </div>
+
+          <div class="leaderboard">
+            <div class="leaderboard-title">🏆 TOP 10 RUNNERS</div>
+            <ol id="leaderboard-list" class="leaderboard-list"></ol>
+          </div>
+
+          <div class="controls-hint">
+            <div><kbd>A</kbd> / <kbd>D</kbd> — change lane &nbsp;·&nbsp; <kbd>Space</kbd> jump &nbsp;·&nbsp; <kbd>S</kbd> slide</div>
+            <div class="mobile-hint">Swipe on mobile</div>
+          </div>
+          <button id="play-btn" class="play-btn">TAP TO RUN</button>
+        </div>
+      </div>
+
+      <div id="gameover-screen" class="overlay hidden">
+        <div class="overlay-card">
+          <div class="go-title">CAUGHT!</div>
+          <div class="go-sub">The 67Kid got you.</div>
+          <div class="go-stats">
+            <div><span class="go-label">Distance</span><span id="go-distance">0m</span></div>
+            <div><span class="go-label">Coins</span><span id="go-coins">0</span></div>
+            <div><span class="go-label">Score</span><span id="go-score">0</span></div>
+            <div><span class="go-label">Rank</span><span id="go-rank">—</span></div>
+          </div>
+          <div class="leaderboard">
+            <div class="leaderboard-title">🏆 TOP 10 RUNNERS</div>
+            <ol id="leaderboard-list-go" class="leaderboard-list"></ol>
+          </div>
+          <button id="retry-btn" class="play-btn">RUN AGAIN</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

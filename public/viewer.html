@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mav 3D — Animations</title>
+    <style>
+      body { margin: 0; background: #0b0f1a; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; }
+      #info { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.55); padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+      #status { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.6); padding: 14px 22px; border-radius: 10px; font-size: 16px; }
+      #anim-controls { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 10px 14px; border-radius: 12px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 90vw; }
+      #anim-controls button { background: linear-gradient(135deg, #ffd257, #ff8a00); color: #2a1500; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-family: inherit; font-size: 14px; }
+      #anim-controls button.active { background: linear-gradient(135deg, #2af070, #28b870); color: #001a08; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="info"><strong>🦺 Mav 3D — Animations</strong><br/>Drag to rotate · Scroll to zoom</div>
+    <div id="status">Loading…</div>
+    <div id="anim-controls" style="display:none">
+      <button data-url="/models/mav-final-running.glb">🏃 RUN</button>
+      <button data-url="/models/mav-final-jump.glb">🦘 JUMP</button>
+      <button data-url="/models/mav-final-slide.glb">🛹 SLIDE</button>
+      <button data-url="/models/mav-final-dead.glb">💀 DEAD</button>
+      <button data-url="/models/mav-final-idle.glb">🧍 IDLE</button>
+    </div>
+    <script type="importmap">{"imports":{"three":"https://esm.sh/three@0.170.0","three/addons/":"https://esm.sh/three@0.170.0/examples/jsm/"}}</script>
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+      const scene = new THREE.Scene(); scene.background = new THREE.Color(0x14182a);
+      const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.01, 100); camera.position.set(0, 1.5, 4);
+      const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; renderer.outputColorSpace = THREE.SRGBColorSpace;
+      document.body.appendChild(renderer.domElement);
+      const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      scene.add(new THREE.HemisphereLight(0xb8d8ff, 0x202428, 0.7));
+      const sun = new THREE.DirectionalLight(0xfff1c7, 1.6); sun.position.set(3, 4, 4); scene.add(sun);
+      const fill = new THREE.DirectionalLight(0xffd0a0, 0.5); fill.position.set(-3, 2, 3); scene.add(fill);
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(3, 32), new THREE.MeshStandardMaterial({ color: 0x202434, roughness: 0.85 })); floor.rotation.x = -Math.PI/2; scene.add(floor);
+      const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(0, 1.0, 0); controls.enableDamping = true; controls.minDistance = 1.2; controls.maxDistance = 8;
+      const status = document.getElementById("status"); const animControls = document.getElementById("anim-controls");
+      const loader = new GLTFLoader(); const clock = new THREE.Clock();
+      let currentModel = null; let mixer = null;
+      function loadModel(url) {
+        if (currentModel) { scene.remove(currentModel); currentModel = null; mixer = null; }
+        status.style.display = "block"; status.textContent = "Loading…";
+        loader.load(url, (gltf) => {
+          const model = gltf.scene;
+          const bbox = new THREE.Box3().setFromObject(model);
+          const size = bbox.getSize(new THREE.Vector3());
+          const scale = 1.7 / size.y; model.scale.setScalar(scale);
+          model.updateMatrixWorld(true);
+          const sb = new THREE.Box3().setFromObject(model);
+          model.position.y -= sb.min.y; model.position.x -= (sb.min.x + sb.max.x) / 2;
+          model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+          scene.add(model); currentModel = model;
+          if (gltf.animations && gltf.animations.length > 0) {
+            mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+          }
+          status.style.display = "none"; animControls.style.display = "flex";
+        }, undefined, err => { status.textContent = "Failed: " + err; });
+      }
+      loadModel("/models/mav-final-running.glb");
+      document.querySelector('#anim-controls button').classList.add("active");
+      document.querySelectorAll("#anim-controls button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#anim-controls button").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active"); loadModel(btn.dataset.url);
+        });
+      });
+      addEventListener("resize", () => {
+        renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+      });
+      function loop() { const dt = clock.getDelta(); if (mixer) mixer.update(dt); controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); }
+      loop();
+    </script>
+  </body>
+</html>
