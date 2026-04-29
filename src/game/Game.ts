@@ -272,6 +272,8 @@ export class Game {
     this.nextLandmarkZ = -60;
     this.player.reset();
     this.chaser.reset();
+    // Make chaser visible again on retry (was hidden in onHit during death)
+    this.chaser.rig.root.visible = true;
     this.world.reset();
     this.particles.clear();
     this.speedLines.clear();
@@ -562,6 +564,12 @@ export class Game {
     this.particles.crash(this.player.rig.root.position.x, 0, 0);
     this.shakeT = 0.55;
     this.shakeMagnitude = 1.8;
+    // Hide the 67Kid chaser during the death cinematic — its primitive
+    // character was making the camera look like "old Mav and new Mav both
+    // showing up", which Oscar called out as a bug. The chaser model is
+    // distinct (red hoodie vs. Mav's cream shirt) but at game-over zoom it
+    // reads as a duplicate Mav. Cleaner: just hide him.
+    this.chaser.rig.root.visible = false;
   }
 
   private dyingStep(dt: number) {
