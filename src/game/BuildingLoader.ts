@@ -25,64 +25,64 @@ const TARGET_HEIGHT: Record<string, number> = {
   usa_skyscraper: 32,
   usa_deco: 28,
   usa_warehouse: 14,            // bumped 9 → 14
-  usa_townhouse: 15,
+  usa_townhouse: 16,
   usa_diner: 5,
   // BRAZIL
   brazil_favela: 14,            // bumped 10 → 14
-  brazil_beachhotel: 16,
+  brazil_beachhotel: 24,
   brazil_sambaschool: 7,
-  brazil_church: 20,
+  brazil_church: 28,
   brazil_villa: 14,             // bumped 9 → 14
-  brazil_museum: 15,
+  brazil_museum: 22,
   // FRANCE
-  france_haussmann: 16,
+  france_haussmann: 22,
   france_cafe: 14,              // bumped 9 → 14
   france_boulangerie: 14,       // bumped 8 → 14
-  france_townhouse: 16,
-  france_church: 24,
+  france_townhouse: 22,
+  france_church: 32,
   france_brasserie: 14,         // bumped 9 → 14
   // JAPAN
-  japan_neonshop: 16,
+  japan_neonshop: 24,
   japan_woodenshop: 14,         // bumped 8 → 14
-  japan_apartment: 18,
-  japan_pagoda: 17,
+  japan_apartment: 26,
+  japan_pagoda: 25,
   japan_station: 14,            // bumped 10 → 14
   japan_school: 14,
   // TURKEY
-  turkey_ottoman: 14,           // bumped 10 → 14
-  turkey_mosque: 16,
+  turkey_ottoman: 18,           // bumped 10 → 14
+  turkey_mosque: 24,
   turkey_bazaar: 14,            // bumped 9 → 14
-  turkey_tower: 19,
+  turkey_tower: 26,
   turkey_villa: 14,             // bumped 10 → 14
-  turkey_han: 14,
+  turkey_han: 16,
   // UK
-  uk_victorian: 14,
-  uk_georgian: 14,
+  uk_victorian: 18,
+  uk_georgian: 18,
   uk_pub: 14,                   // bumped 8 → 14
-  uk_tower: 17,
+  uk_tower: 26,
   uk_phonebox_kiosk: 4,
   uk_tubestation: 14,           // bumped 9 → 14
   // RUSSIA — 6 variants
-  russia_stalinist: 18,         // bumped 16 → 18
-  russia_oniondome: 17,         // bumped 15 → 17
+  russia_stalinist: 28,         // bumped 16 → 18
+  russia_oniondome: 25,         // bumped 15 → 17
   russia_dacha: 6,
-  russia_palace: 16,            // bumped 14 → 16
-  russia_khrushchyovka: 15,     // bumped 13 → 15
+  russia_palace: 24,            // bumped 14 → 16
+  russia_khrushchyovka: 18,     // bumped 13 → 15
   russia_metro: 6,
   // UAE
-  uae_glasstower: 28,
+  uae_glasstower: 34,
   uae_sandstone: 14,
   uae_souk: 14,                 // bumped 9 → 14
-  uae_grandmosque: 16,
+  uae_grandmosque: 24,
   uae_villa: 14,                // bumped 10 → 14
   uae_market: 7,
   // EGYPT — 6 variants
-  egypt_apartment: 15,          // bumped 12 → 15
-  egypt_mosque: 15,             // bumped 13 → 15
+  egypt_apartment: 18,          // bumped 12 → 15
+  egypt_mosque: 24,             // bumped 13 → 15
   egypt_steppyramid: 8,
-  egypt_temple: 14,             // bumped 11 → 14
+  egypt_temple: 22,             // bumped 11 → 14
   egypt_market: 6,
-  egypt_tower: 20,              // bumped 18 → 20
+  egypt_tower: 28,              // bumped 18 → 20
 };
 
 // Max width/depth so a single building doesn't span multiple slot lanes
