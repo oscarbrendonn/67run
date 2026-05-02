@@ -43,6 +43,14 @@ export class MavGLB {
     else this.onLoadedCallbacks.push(cb);
   }
 
+  /** Returns a Promise that resolves once the Mav GLB + all animations
+   *  are cached. Game.assetsReady awaits this so TAP TO RUN doesn't fire
+   *  while the player would still be a primitive rig. */
+  ready(): Promise<void> {
+    if (this.loaded) return Promise.resolve();
+    return new Promise((resolve) => this.onLoadedCallbacks.push(() => resolve()));
+  }
+
   private async loadAll() {
     const loader = new GLTFLoader();
     const loadGLB = (url: string): Promise<{ scene: THREE.Group; clip?: THREE.AnimationClip }> =>

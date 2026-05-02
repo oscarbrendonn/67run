@@ -33,6 +33,13 @@ export class Player {
   // GLB Mav (loaded async — replaces primitive when ready)
   private mavGLB: MavGLB | null = null;
 
+  /** Promise that resolves once the Mav GLB + animations are loaded.
+   *  Game.assetsReady awaits this so TAP TO RUN doesn't fire before
+   *  the 3D character is on-screen. */
+  mavReady(): Promise<void> {
+    return this.mavGLB?.ready() ?? Promise.resolve();
+  }
+
   constructor(scene: THREE.Scene) {
     this.rig = buildCharacter({
       skin: 0xf7caa5,
@@ -68,11 +75,11 @@ export class Player {
       const p = this.root.position;
       this.mavGLB!.root.position.set(p.x, p.y, p.z);
     });
-    // Failsafe: if GLB still hasn't arrived after 4 seconds, reveal the
-    // primitive as a fallback so the player isn't running invisibly.
-    setTimeout(() => {
-      if (this.mavGLB && !this.mavGLB.loaded) setPrimVisible(true);
-    }, 4000);
+    // No primitive failsafe: assetsReady (in Game.init) preloads the Mav
+    // GLB and TAP TO RUN waits for it, so the GLB is always ready by the
+    // time the player starts running. Showing the primitive after 4s
+    // caused the "two Mavs overlapping" bug Oscar saw — primitive was
+    // revealed but never re-hidden when the late GLB finally loaded.
   }
 
   reset() {

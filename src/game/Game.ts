@@ -146,15 +146,18 @@ export class Game {
     this.world = new World(this.scene, initial);
     // Preload all road textures in background so theme switches are instant (no lag)
     this.world.preloadAllRoads();
-    // Eagerly fetch initial theme's GLBs so TAP TO RUN can wait for them.
-    // Resolves the assetsReady Promise that main.ts awaits before start().
+    this.player = new Player(this.scene);
+    this.chaser = new Chaser(this.scene);
+    // Now that Player exists (and started fetching its Mav GLB), build the
+    // assetsReady promise. main.ts awaits this before calling start(), so
+    // the player lands in a fully 3D scene with the 3D Mav already on
+    // screen — no primitive flash, no "two Mavs overlapping" double-render.
     this.assetsReady = Promise.all([
       preloadThemeBuildings(initial.id),
       preloadThemeObstacles(initial.id),
       preloadLandmark(initial.id, initial.landmark),
+      this.player.mavReady(),
     ]).then(() => undefined);
-    this.player = new Player(this.scene);
-    this.chaser = new Chaser(this.scene);
     this.particles = new Particles(this.scene);
     this.weather = new Weather(this.scene);
     this.speedLines = new SpeedLines(this.scene);
