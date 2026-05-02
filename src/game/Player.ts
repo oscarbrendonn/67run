@@ -67,23 +67,20 @@ export class Player {
       if (this.rig.leftLeg) this.rig.leftLeg.visible = v;
       if (this.rig.rightLeg) this.rig.rightLeg.visible = v;
     };
-    // Primitive starts VISIBLE so the screen always has a character on
-    // it — even on a fresh page load before the Mav GLB has parsed.
-    // The moment the GLB succeeds (onLoaded callback below) we hide
-    // the primitive in the SAME frame, so the two never overlap visually.
-    setPrimVisible(true);
+    // Primitive ALWAYS hidden — Oscar: "öbürü eski karakter istemiyorum,
+    // sadece üç boyutlu". The 3D Mav GLB starts loading immediately in
+    // the MavGLB constructor below, and renders into the same scene as
+    // soon as it parses. Title-screen waiting period: empty (no robot
+    // fallback ever shown) — by the time the user types a name and hits
+    // PLAY, the GLB is already on screen behind the menu overlay.
+    setPrimVisible(false);
     scene.add(this.root);
 
     this.mavGLB = new MavGLB(scene);
     this.mavGLB.onLoaded(() => {
       const p = this.root.position;
       this.mavGLB!.root.position.set(p.x, p.y, p.z);
-      // GLB arrived AND parsed successfully → hide the primitive, the
-      // 3D Mav takes over. If the load failed (succeeded=false), keep
-      // the primitive visible so the player isn't running invisibly.
-      if (this.mavGLB && this.mavGLB.succeeded) {
-        setPrimVisible(false);
-      }
+      // (No primitive toggling — primitive stays hidden forever.)
     });
   }
 
