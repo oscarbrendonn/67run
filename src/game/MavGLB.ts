@@ -146,7 +146,15 @@ export class MavGLB {
       for (const cb of this.onLoadedCallbacks) cb();
       this.onLoadedCallbacks.length = 0;
     } catch (err) {
-      console.warn("MavGLB load failed:", err);
+      // CRITICAL: even on failure we MUST flag loaded=true and fire the
+      // callbacks. Otherwise ready() returns a Promise that never resolves,
+      // assetsReady hangs, and TAP TO RUN gets stuck on "LOADING..." (the
+      // bug Oscar hit). Better to start the game with a missing/broken
+      // Mav than to lock the player out forever.
+      console.error("MavGLB load failed — starting game without Mav:", err);
+      this.loaded = true;
+      for (const cb of this.onLoadedCallbacks) cb();
+      this.onLoadedCallbacks.length = 0;
     }
   }
 

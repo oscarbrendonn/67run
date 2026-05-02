@@ -149,15 +149,34 @@ export class Game {
     this.player = new Player(this.scene);
     this.chaser = new Chaser(this.scene);
     // Now that Player exists (and started fetching its Mav GLB), build the
-    // assetsReady promise. main.ts awaits this before calling start(), so
-    // the player lands in a fully 3D scene with the 3D Mav already on
-    // screen — no primitive flash, no "two Mavs overlapping" double-render.
-    this.assetsReady = Promise.all([
+    // assetsReady promise. main.ts awaits this before calling start().
+    // Race against a 20s timeout so a single hung GLB request can't lock
+    // the user on "LOADING..." forever — Oscar hit that bug. After 20s
+    // we start the game regardless; primitive→3D swap then happens
+    // organically as straggler GLBs arrive.
+    const assetsPromise = Promise.all([
       preloadThemeBuildings(initial.id),
       preloadThemeObstacles(initial.id),
       preloadLandmark(initial.id, initial.landmark),
       this.player.mavReady(),
     ]).then(() => undefined);
+    const failsafeTimeout = new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), 20000);
+    });
+    this.assetsReady = Promise.race([assetsPromise, failsafeTimeout]);
+    // Fire-and-forget: prefetch every OTHER country's GLBs in the
+    // background so 400m theme switches don't show primitives. Player
+    // runs initial theme while these download. Total ~600MB across 12
+    // countries — slow connections finish in 1-2 minutes, fast ones in
+    // seconds. Each request is independent + cached after first hit.
+    setTimeout(() => {
+      for (const t of THEMES) {
+        if (t.id === initial.id) continue;
+        preloadThemeBuildings(t.id);
+        preloadThemeObstacles(t.id);
+        preloadLandmark(t.id, t.landmark);
+      }
+    }, 100);
     this.particles = new Particles(this.scene);
     this.weather = new Weather(this.scene);
     this.speedLines = new SpeedLines(this.scene);
