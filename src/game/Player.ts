@@ -74,15 +74,25 @@ export class Player {
     this.mavGLB.onLoaded(() => {
       const p = this.root.position;
       this.mavGLB!.root.position.set(p.x, p.y, p.z);
-      // If the GLB load actually failed (succeeded=false), reveal the
-      // primitive rig as a last-resort fallback so the player isn't
-      // staring at an empty scene. The "double Mav" bug only happened
-      // before because the failsafe ran on a TIMER and re-fired even
-      // when the GLB later arrived — now we react to the real outcome.
-      if (this.mavGLB && !this.mavGLB.succeeded) {
+      // GLB succeeded → make absolutely sure the primitive is hidden,
+      // so the two-Mav-overlap bug can't reappear if the failsafe
+      // already revealed it.
+      if (this.mavGLB && this.mavGLB.succeeded) {
+        setPrimVisible(false);
+      } else {
+        // Real load failure — show primitive so the player isn't an
+        // invisible runner.
         setPrimVisible(true);
       }
     });
+    // Failsafe: if the Mav GLB takes longer than 8s OR onLoaded never
+    // fires (network blocked, parse error before callback registered),
+    // reveal the primitive rig so the screen always has SOMETHING. The
+    // onLoaded handler above hides it again the moment the GLB arrives,
+    // so there's no overlap.
+    setTimeout(() => {
+      if (this.mavGLB && !this.mavGLB.loaded) setPrimVisible(true);
+    }, 8000);
   }
 
   reset() {
