@@ -221,16 +221,7 @@ export const THEMES: Theme[] = [
     hemiGround: 0x4a3220,
     landmark: "pyramids",
   },
-  // 10-13: Italy, Australia, China, South Korea — coded but disabled
-  // here. Code paths (Landmarks, SkyDome, Ground, ThemeBuildings,
-  // BuildingLoader, ThemeObstacles, ObstacleLoader, StreetProps, Bridge)
-  // already handle id="italy"|"australia"|"china"|"korea". Re-enable by
-  // uncommenting the entries below once the Meshy GLB pipelines (~40
-  // models) finish.
-  //
-  // ⚠️ DON'T DELETE the per-id branches in Landmarks.ts etc. — they're
-  // ready and waiting; Themes.ts is the only flip-switch.
-  /*
+  // 10. Italy — Rome (Akdeniz mavisi, Kolezyum, taş cobblestone)
   { id: "italy", city: "ROME", country: "ITALY", flag: "IT",
     sky: 0x4a8acc, fog: 0x9ec0dc, fogNear: 40, fogFar: 200,
     ground: 0x6a5848, grass: 0x3a5230,
@@ -239,6 +230,7 @@ export const THEMES: Theme[] = [
     sunColor: 0xfff5dd, sunIntensity: 1.9,
     hemiSky: 0xb0c8dc, hemiGround: 0x4a382a,
     landmark: "colosseum" },
+  // 11. Australia — Sydney (sahil mavi, Opera Binası)
   { id: "australia", city: "SYDNEY", country: "AUSTRALIA", flag: "AU",
     sky: 0x5ac0e8, fog: 0xb8dcec, fogNear: 42, fogFar: 210,
     ground: 0x9a7a52, grass: 0x4a6838,
@@ -247,6 +239,7 @@ export const THEMES: Theme[] = [
     sunColor: 0xfffff0, sunIntensity: 2.1,
     hemiSky: 0xc8e4ec, hemiGround: 0x6a5838,
     landmark: "opera" },
+  // 12. China — Shanghai (gece neon + Pearl Tower)
   { id: "china", city: "SHANGHAI", country: "CHINA", flag: "CN",
     sky: 0x182030, fog: 0x182030, fogNear: 32, fogFar: 160,
     ground: 0x2a1a1a, grass: 0x1a1818,
@@ -255,6 +248,7 @@ export const THEMES: Theme[] = [
     sunColor: 0x6080b0, sunIntensity: 1.0,
     hemiSky: 0x2a3850, hemiGround: 0x1a1010,
     landmark: "pearl" },
+  // 13. South Korea — Seoul (gündüz mavi, N Seoul Tower)
   { id: "korea", city: "SEOUL", country: "SOUTH KOREA", flag: "KR",
     sky: 0x6aacd8, fog: 0x9cc4dc, fogNear: 38, fogFar: 190,
     ground: 0x383a44, grass: 0x3a4438,
@@ -263,7 +257,6 @@ export const THEMES: Theme[] = [
     sunColor: 0xfff5e0, sunIntensity: 1.8,
     hemiSky: 0xb0c8dc, hemiGround: 0x303038,
     landmark: "seoultower" },
-  */
 ];
 
 /** Linear blend between two themes for smooth transitions */

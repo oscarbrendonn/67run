@@ -262,9 +262,7 @@ export const THEME_BUILDINGS: Record<string, string[]> = {
   russia: ["russia_stalinist", "russia_oniondome", "russia_dacha", "russia_palace", "russia_khrushchyovka", "russia_metro"],
   uae: ["uae_glasstower", "uae_souk", "uae_grandmosque", "uae_villa"],
   egypt: ["egypt_apartment", "egypt_mosque", "egypt_steppyramid", "egypt_temple", "egypt_tower"],
-  // New countries — GLB pipelines pending. Listed names match the names
-  // the Meshy script will produce; loadBuildingModel returns null until
-  // the GLBs land, so the primitive ThemeBuildings.buildGeneric fills in.
+  // New countries — full 5-building rotation per country.
   italy: ["italy_palazzo", "italy_basilica", "italy_villa", "italy_townhouse", "italy_trattoria"],
   australia: ["australia_harbor", "australia_glasstower", "australia_terracehouse", "australia_warehouse", "australia_lighthouse"],
   china: ["china_pagoda", "china_skyscraper", "china_temple", "china_lanternshop", "china_apartment"],
@@ -283,10 +281,13 @@ const TALL_BUILDINGS: Record<string, string[]> = {
   russia: ["russia_stalinist", "russia_oniondome", "russia_palace", "russia_khrushchyovka"],
   uae: ["uae_glasstower", "uae_grandmosque", "uae_villa", "uae_souk"],
   egypt: ["egypt_apartment", "egypt_mosque", "egypt_temple", "egypt_tower"],
-  italy: ["italy_palazzo", "italy_basilica", "italy_villa"],
-  australia: ["australia_glasstower", "australia_lighthouse", "australia_harbor"],
-  china: ["china_skyscraper", "china_pagoda", "china_temple"],
-  korea: ["korea_skyscraper", "korea_palace", "korea_apartment"],
+  // Full 5-building front-row pool for each new country so every Meshy
+  // GLB gets used (was 3 — meant 2 buildings would never spawn at the
+  // curb, leaving Oscar with primitive-looking gaps).
+  italy: ["italy_palazzo", "italy_basilica", "italy_villa", "italy_townhouse", "italy_trattoria"],
+  australia: ["australia_glasstower", "australia_lighthouse", "australia_harbor", "australia_warehouse", "australia_terracehouse"],
+  china: ["china_skyscraper", "china_pagoda", "china_temple", "china_apartment", "china_lanternshop"],
+  korea: ["korea_skyscraper", "korea_palace", "korea_apartment", "korea_hanok", "korea_kpopstore"],
 };
 
 /** BACK-row sky-blocker: a single tallest-per-theme GLB used as a uniform
