@@ -754,7 +754,12 @@ export class World {
   /** Spawn a landmark at given Z, positioned on random side. */
   spawnLandmark(theme: Theme, z: number, side: number = Math.random() < 0.5 ? -1 : 1) {
     const g = buildLandmark(theme.landmark);
-    const dist = 28 + Math.random() * 8;
+    // Push landmark far behind the 3-layer building wall (back row inner
+    // edge ~13–15m from road) so it reads as a distant skyline monument
+    // rather than a road-adjacent prop. Oscar: "üç binanın arkasına koy,
+    // arkadan görünsün". x≈45m yan + z = caller's z (already ~-90 to
+    // -130) gives the right "Cristo Redentor on the mountain horizon" feel.
+    const dist = 44 + Math.random() * 8;       // was 28 → 36, now 44 → 52
     g.position.set(side * dist, 0, z);
     g.rotation.y = side > 0 ? -0.3 : 0.3;
     g.scale.setScalar(1.0);
