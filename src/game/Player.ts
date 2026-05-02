@@ -67,32 +67,24 @@ export class Player {
       if (this.rig.leftLeg) this.rig.leftLeg.visible = v;
       if (this.rig.rightLeg) this.rig.rightLeg.visible = v;
     };
-    setPrimVisible(false);
+    // Primitive starts VISIBLE so the screen always has a character on
+    // it — even on a fresh page load before the Mav GLB has parsed.
+    // The moment the GLB succeeds (onLoaded callback below) we hide
+    // the primitive in the SAME frame, so the two never overlap visually.
+    setPrimVisible(true);
     scene.add(this.root);
 
     this.mavGLB = new MavGLB(scene);
     this.mavGLB.onLoaded(() => {
       const p = this.root.position;
       this.mavGLB!.root.position.set(p.x, p.y, p.z);
-      // GLB succeeded → make absolutely sure the primitive is hidden,
-      // so the two-Mav-overlap bug can't reappear if the failsafe
-      // already revealed it.
+      // GLB arrived AND parsed successfully → hide the primitive, the
+      // 3D Mav takes over. If the load failed (succeeded=false), keep
+      // the primitive visible so the player isn't running invisibly.
       if (this.mavGLB && this.mavGLB.succeeded) {
         setPrimVisible(false);
-      } else {
-        // Real load failure — show primitive so the player isn't an
-        // invisible runner.
-        setPrimVisible(true);
       }
     });
-    // Failsafe: if the Mav GLB takes longer than 8s OR onLoaded never
-    // fires (network blocked, parse error before callback registered),
-    // reveal the primitive rig so the screen always has SOMETHING. The
-    // onLoaded handler above hides it again the moment the GLB arrives,
-    // so there's no overlap.
-    setTimeout(() => {
-      if (this.mavGLB && !this.mavGLB.loaded) setPrimVisible(true);
-    }, 8000);
   }
 
   reset() {
