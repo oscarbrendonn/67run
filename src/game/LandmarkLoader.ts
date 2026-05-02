@@ -58,7 +58,21 @@ export async function loadLandmarkModel(
       const bbox = new THREE.Box3().setFromObject(m);
       const size = bbox.getSize(new THREE.Vector3());
       const targetH = TARGET_HEIGHT[name] ?? 30;
-      const scale = targetH / Math.max(0.001, size.y);
+      let scale = targetH / Math.max(0.001, size.y);
+      // Cap by width so wide landmarks (Colosseum 188×52, Hagia, pyramids)
+      // don't span the road. The road is 7m, sidewalks 4.5m each side, and
+      // landmarks sit ~28m off-axis — anything wider than ~22m starts to
+      // overlap the road. Oscar: "Roma anıtı yolu kapatıyor".
+      const MAX_LANDMARK_WIDTH = 22;
+      const MAX_LANDMARK_DEPTH = 22;
+      const widthAfter = size.x * scale;
+      if (widthAfter > MAX_LANDMARK_WIDTH) {
+        scale *= MAX_LANDMARK_WIDTH / widthAfter;
+      }
+      const depthAfter = size.z * scale;
+      if (depthAfter > MAX_LANDMARK_DEPTH) {
+        scale *= MAX_LANDMARK_DEPTH / depthAfter;
+      }
       m.scale.setScalar(scale);
       m.updateMatrixWorld(true);
       const sb = new THREE.Box3().setFromObject(m);
