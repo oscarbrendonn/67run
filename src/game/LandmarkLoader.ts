@@ -108,9 +108,13 @@ function cloneAndPrep(template: THREE.Group): THREE.Group {
   return g;
 }
 
-export function preloadLandmark(themeId: string, kind: string): void {
+export function preloadLandmark(themeId: string, kind: string): Promise<void> {
+  return loadLandmarkModel(themeId, kind).then(() => undefined);
+}
+
+/** Sync cache lookup — returns a clone if cached, null otherwise. */
+export function getCachedLandmark(themeId: string, kind: string): THREE.Group | null {
   const name = landmarkFile(themeId, kind);
-  if (!cache.has(name) && !inflight.has(name)) {
-    loadLandmarkModel(themeId, kind);
-  }
+  const t = cache.get(name);
+  return t ? cloneAndPrep(t) : null;
 }

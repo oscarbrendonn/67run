@@ -12,8 +12,11 @@ import {
   VignetteEffect,
 } from "postprocessing";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { preloadThemeBuildings } from "./BuildingLoader";
 import { Chaser } from "./Chaser";
 import { Horizon } from "./Horizon";
+import { preloadLandmark } from "./LandmarkLoader";
+import { preloadThemeObstacles } from "./ObstacleLoader";
 import { Input } from "./Input";
 import { Particles } from "./Particles";
 import { Player } from "./Player";
@@ -80,6 +83,10 @@ export class Game {
   private level = 1;
   private themeIndex = 0;
   private nextLandmarkZ = 0;
+  /** Resolves once the initial theme's GLBs are cached. main.ts awaits
+   *  this before calling start() so the player lands in 3D, not in a
+   *  primitive scene that swaps to 3D over the first few seconds. */
+  assetsReady: Promise<void> = Promise.resolve();
 
   constructor(canvas: HTMLCanvasElement, ui: UI) {
     this.canvas = canvas;
@@ -139,6 +146,13 @@ export class Game {
     this.world = new World(this.scene, initial);
     // Preload all road textures in background so theme switches are instant (no lag)
     this.world.preloadAllRoads();
+    // Eagerly fetch initial theme's GLBs so TAP TO RUN can wait for them.
+    // Resolves the assetsReady Promise that main.ts awaits before start().
+    this.assetsReady = Promise.all([
+      preloadThemeBuildings(initial.id),
+      preloadThemeObstacles(initial.id),
+      preloadLandmark(initial.id, initial.landmark),
+    ]).then(() => undefined);
     this.player = new Player(this.scene);
     this.chaser = new Chaser(this.scene);
     this.particles = new Particles(this.scene);

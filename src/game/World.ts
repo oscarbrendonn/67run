@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { buildBridge } from "./Bridge";
-import { loadBuildingModel, pickBuildingModel, preloadThemeBuildings } from "./BuildingLoader";
+import { getCachedBuilding, loadBuildingModel, pickBuildingModel, preloadThemeBuildings } from "./BuildingLoader";
 import { loadFlagModel } from "./FlagLoader";
 import { buildFlagPole } from "./Flags";
 import { buildFlyingCar } from "./FlyingCar";
@@ -533,7 +533,19 @@ export class World {
     const side = slotMod % 2 === 0 ? -1 : 1;
     const rowTier = Math.floor(slotMod / 2); // 0=front, 1=mid, 2=back
     const isFrontRow = rowTier === 0;
-    const tb = buildThemeBuilding(this.theme, slot);
+    // Try cached GLB first — if present, skip primitive entirely so the
+    // first frame of a new theme already shows the 3D building. Oscar:
+    // "yeni haritaya açıldığında kötü binalar görünüyor, biraz oynamak
+    // gerekiyor". Primitive flash gone when cache is warm (preload done).
+    const earlyModelName = pickBuildingModel(
+      this.theme.id,
+      slot,
+      rowTier as 0 | 1 | 2
+    );
+    const cachedGlb = earlyModelName ? getCachedBuilding(earlyModelName) : null;
+    const tb = cachedGlb
+      ? { group: cachedGlb, mainMaterials: [], accentMaterials: [] }
+      : buildThemeBuilding(this.theme, slot);
     const g = tb.group;
     g.traverse((c) => {
       const m = c as THREE.Mesh;
@@ -583,17 +595,11 @@ export class World {
       side,
     };
 
-    // Async swap to Meshy-generated 3D building if available. Front-row
-    // slots get tall buildings so they cover the sky behind. Position is
-    // recomputed from the GLB's own width so the road-facing edge lines
-    // up at `entry.innerEdge` regardless of how wide the GLB is — no more
-    // buildings spilling into the road.
-    const modelName = pickBuildingModel(
-      this.theme.id,
-      slot,
-      rowTier as 0 | 1 | 2
-    );
-    if (modelName) {
+    // If we already used the cached GLB above, no async swap needed.
+    // Otherwise (cache miss → primitive shown), kick off the GLB load
+    // and swap when it lands.
+    const modelName = earlyModelName;
+    if (modelName && !cachedGlb) {
       loadBuildingModel(modelName).then((glb) => {
         if (!glb) return;
         if (!this.buildings.includes(entry)) return;

@@ -116,14 +116,17 @@ const inflightLoads = new Map<string, Promise<THREE.Group | null>>();
  * Preload obstacles for a theme so they're cached before player encounters them.
  * Call when the theme switches.
  */
-export function preloadThemeObstacles(themeId: string): void {
+export function preloadThemeObstacles(themeId: string): Promise<void> {
   const list = getThemeObstacleList(themeId);
-  for (const kind of list) {
-    if (!cache.has(kind) && !inflightLoads.has(kind)) {
-      // Fire and forget — caches when done
-      loadObstacleModel(kind);
-    }
-  }
+  return Promise.all(list.map((kind) => loadObstacleModel(kind))).then(
+    () => undefined
+  );
+}
+
+/** Sync cache lookup — returns a clone if cached, null otherwise. */
+export function getCachedObstacle(kind: string): THREE.Group | null {
+  const t = cache.get(kind);
+  return t ? cloneAndPrep(t) : null;
 }
 
 function getThemeObstacleList(themeId: string): string[] {
@@ -137,8 +140,11 @@ function getThemeObstacleList(themeId: string): string[] {
     uk: ["phonebox", "mailbox", "uk_doubledecker", "uk_fishchips", "uk_lampost"],
     russia: ["icepatch", "vodka", "russia_samovar", "russia_ushanka", "russia_matryoshka"],
     uae: ["goldstand", "palmcrate", "uae_oilbarrel", "uae_datesyramid", "uae_falcon"],
-    // Egypt obstacles are primitive-only — nothing to preload
-    egypt: [],
+    egypt: ["egypt_sphinx", "egypt_stele", "egypt_ankh", "egypt_canopic"],
+    italy: ["italy_vespa", "italy_fountain", "italy_column", "italy_gelato"],
+    australia: ["australia_surfboard", "australia_bbq", "australia_kangaroosign", "australia_esky"],
+    china: ["china_lantern", "china_dragon", "china_jadevase", "china_dimsum"],
+    korea: ["korea_kimchi", "korea_kpopsign", "korea_foodcart", "korea_hanbok"],
   };
   return [...generic, ...(themed[themeId] || [])];
 }

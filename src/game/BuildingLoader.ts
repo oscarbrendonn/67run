@@ -238,16 +238,24 @@ function cloneAndPrep(template: THREE.Group, name?: string): THREE.Group {
   return g;
 }
 
-/** Eagerly preload buildings for a theme so they're ready when player arrives. */
-export function preloadThemeBuildings(themeId: string): void {
+/** Eagerly preload buildings for a theme. Returns a Promise that resolves
+ *  when all GLBs for the theme are in cache, so callers can await before
+ *  starting the game (no primitive flash on first frames). */
+export function preloadThemeBuildings(themeId: string): Promise<void> {
   const list = THEME_BUILDINGS[themeId];
-  if (!list) return;
-  for (const name of list) {
-    if (!cache.has(name) && !inflight.has(name)) {
-      // Fire-and-forget — caches when done
-      loadBuildingModel(name);
-    }
-  }
+  if (!list) return Promise.resolve();
+  return Promise.all(list.map((name) => loadBuildingModel(name))).then(
+    () => undefined
+  );
+}
+
+/** Sync cache lookup. Returns a fresh clone if the GLB is already cached,
+ *  otherwise null. createBuilding uses this to draw 3D directly when
+ *  preload has finished — avoiding the primitive→3D flash that Oscar
+ *  noticed on theme entry. */
+export function getCachedBuilding(name: string): THREE.Group | null {
+  const t = cache.get(name);
+  return t ? cloneAndPrep(t, name) : null;
 }
 
 /** Per-theme building names — ONLY models that actually exist on disk.

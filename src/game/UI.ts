@@ -59,14 +59,24 @@ export class UI {
     renderLeaderboard(this.leaderboardListGo, board, highlightName);
   }
 
-  onStart(cb: () => void) {
-    const fire = () => {
+  onStart(cb: () => void | Promise<void>) {
+    const fire = async () => {
       // Persist whatever name is in the box (sanitized)
       const name = this.getName();
       setUsername(name);
       this.usernameInput.value = name;
-      this.startScreen.classList.add("hidden");
-      cb();
+      // Awaiting cb (which awaits preload) before hiding the screen so
+      // the player sees "Loading..." instead of a primitive-flash arrival.
+      const orig = this.playBtn.textContent || "TAP TO RUN";
+      this.playBtn.textContent = "LOADING...";
+      this.playBtn.setAttribute("disabled", "true");
+      try {
+        await cb();
+      } finally {
+        this.startScreen.classList.add("hidden");
+        this.playBtn.textContent = orig;
+        this.playBtn.removeAttribute("disabled");
+      }
     };
     this.playBtn.addEventListener("click", fire);
     this.playBtn.addEventListener("touchstart", (e) => {
