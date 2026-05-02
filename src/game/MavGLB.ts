@@ -26,6 +26,11 @@ export class MavGLB {
   root: THREE.Group;
   scene: THREE.Scene;
   loaded = false;
+  /** Did the GLB actually arrive + bind successfully? Distinct from
+   *  `loaded` (which now flips to true even on error so Promise resolves).
+   *  Player uses this to decide whether to show the primitive fallback
+   *  rig — if the GLB silently failed, at least show SOMETHING. */
+  succeeded = false;
   private mixer: THREE.AnimationMixer | null = null;
   private actions: Partial<Record<MavState, THREE.AnimationAction>> = {};
   private currentState: MavState | null = null;
@@ -63,20 +68,40 @@ export class MavGLB {
               clip: g.animations[0],
             }),
           undefined,
-          reject
+          (e) => {
+            console.error(`MavGLB GLTFLoader failed on ${url}:`, e);
+            reject(e);
+          }
         )
       );
 
     try {
-      // Load base + all animations in parallel
-      const [base, runG, jumpG, slideG, deadG, idleG] = await Promise.all([
-        loadGLB(MODEL_BASE),
+      // Load base — required. Animations are best-effort: if a single
+      // anim GLB chokes (corrupt, stale CDN, parse error) we don't want
+      // to lose the whole character. Fall back to T-pose for that state.
+      const base = await loadGLB(MODEL_BASE);
+      console.log("MavGLB base loaded — fetching animations…");
+      const animResults = await Promise.allSettled([
         loadGLB(ANIMATIONS.run),
         loadGLB(ANIMATIONS.jump),
         loadGLB(ANIMATIONS.slide),
         loadGLB(ANIMATIONS.dead),
         loadGLB(IDLE_FILE),
       ]);
+      const pickAnim = (
+        i: number,
+        label: string
+      ): { scene: THREE.Group; clip?: THREE.AnimationClip } | null => {
+        const r = animResults[i];
+        if (r.status === "fulfilled") return r.value;
+        console.warn(`MavGLB ${label} animation failed:`, r.reason);
+        return null;
+      };
+      const runG = pickAnim(0, "run") ?? base;
+      const jumpG = pickAnim(1, "jump") ?? base;
+      const slideG = pickAnim(2, "slide") ?? base;
+      const deadG = pickAnim(3, "dead") ?? base;
+      const idleG = pickAnim(4, "idle") ?? base;
 
       // Use base mesh, attach to root + scale to ~2 units tall
       const model = base.scene;
@@ -141,18 +166,19 @@ export class MavGLB {
       tryBind("idle", idleG.clip, { loop: THREE.LoopRepeat, stripMotion: true });
 
       this.loaded = true;
+      this.succeeded = true;
       // Default: run
       this.setState("run");
       for (const cb of this.onLoadedCallbacks) cb();
       this.onLoadedCallbacks.length = 0;
     } catch (err) {
-      // CRITICAL: even on failure we MUST flag loaded=true and fire the
-      // callbacks. Otherwise ready() returns a Promise that never resolves,
-      // assetsReady hangs, and TAP TO RUN gets stuck on "LOADING..." (the
-      // bug Oscar hit). Better to start the game with a missing/broken
-      // Mav than to lock the player out forever.
-      console.error("MavGLB load failed — starting game without Mav:", err);
+      // Even on failure we MUST flag loaded=true and fire the callbacks
+      // so ready() resolves and TAP TO RUN doesn't hang on "LOADING...".
+      // succeeded stays false so Player can fall back to the primitive
+      // rig instead of leaving the screen character-less.
+      console.error("MavGLB load failed:", err);
       this.loaded = true;
+      this.succeeded = false;
       for (const cb of this.onLoadedCallbacks) cb();
       this.onLoadedCallbacks.length = 0;
     }

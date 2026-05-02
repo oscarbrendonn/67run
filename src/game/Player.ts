@@ -74,12 +74,15 @@ export class Player {
     this.mavGLB.onLoaded(() => {
       const p = this.root.position;
       this.mavGLB!.root.position.set(p.x, p.y, p.z);
+      // If the GLB load actually failed (succeeded=false), reveal the
+      // primitive rig as a last-resort fallback so the player isn't
+      // staring at an empty scene. The "double Mav" bug only happened
+      // before because the failsafe ran on a TIMER and re-fired even
+      // when the GLB later arrived — now we react to the real outcome.
+      if (this.mavGLB && !this.mavGLB.succeeded) {
+        setPrimVisible(true);
+      }
     });
-    // No primitive failsafe: assetsReady (in Game.init) preloads the Mav
-    // GLB and TAP TO RUN waits for it, so the GLB is always ready by the
-    // time the player starts running. Showing the primitive after 4s
-    // caused the "two Mavs overlapping" bug Oscar saw — primitive was
-    // revealed but never re-hidden when the late GLB finally loaded.
   }
 
   reset() {
