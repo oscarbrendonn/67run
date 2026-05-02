@@ -31,7 +31,213 @@ export function buildLandmark(kind: Theme["landmark"]): THREE.Group {
       return buildBurj();
     case "pyramids":
       return buildPyramids();
+    case "colosseum":
+      return buildColosseum();
+    case "opera":
+      return buildOpera();
+    case "pearl":
+      return buildPearlTower();
+    case "seoultower":
+      return buildSeoulTower();
   }
+}
+
+/** Roman Colosseum — circular ring of arches, 4 tiers tapering, weathered stone */
+function buildColosseum(): THREE.Group {
+  const g = new THREE.Group();
+  const stone = stoneMat(0xc8a878);
+  const stoneDark = stoneMat(0x886848);
+  const RADIUS = 12;
+  const HEIGHT_PER_TIER = 4.5;
+  const TIERS = 4;
+  // Outer wall as a 24-sided polygon (looks circular at distance)
+  for (let t = 0; t < TIERS; t++) {
+    const r = RADIUS - t * 0.6;
+    const ring = new THREE.Mesh(
+      new THREE.CylinderGeometry(r, r + 0.3, HEIGHT_PER_TIER, 24, 1, true),
+      stone
+    );
+    ring.position.y = HEIGHT_PER_TIER / 2 + t * HEIGHT_PER_TIER;
+    g.add(ring);
+    // Arches — small dark boxes around the perimeter to suggest archway openings
+    const archCount = 24;
+    for (let a = 0; a < archCount; a++) {
+      const ang = (a / archCount) * Math.PI * 2;
+      const arch = new THREE.Mesh(
+        new THREE.BoxGeometry(0.7, HEIGHT_PER_TIER * 0.7, 0.4),
+        stoneDark
+      );
+      arch.position.set(
+        Math.cos(ang) * (r - 0.1),
+        HEIGHT_PER_TIER / 2 + t * HEIGHT_PER_TIER,
+        Math.sin(ang) * (r - 0.1)
+      );
+      arch.rotation.y = -ang;
+      g.add(arch);
+    }
+  }
+  // Partially-collapsed top ring (signature ruined look)
+  const ruinAng = Math.PI * 1.2; // missing wedge
+  for (let a = 0; a < 24; a++) {
+    const ang = (a / 24) * Math.PI * 2;
+    if (Math.abs(((ang - 0) + Math.PI * 2) % (Math.PI * 2)) < ruinAng) continue;
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 1.2, 0.6),
+      stone
+    );
+    block.position.set(
+      Math.cos(ang) * RADIUS,
+      TIERS * HEIGHT_PER_TIER + 0.6,
+      Math.sin(ang) * RADIUS
+    );
+    block.rotation.y = -ang;
+    g.add(block);
+  }
+  return g;
+}
+
+/** Sydney Opera House — overlapping white shell roofs on a podium */
+function buildOpera(): THREE.Group {
+  const g = new THREE.Group();
+  const shellMat = new THREE.MeshStandardMaterial({
+    color: 0xfafafa,
+    roughness: 0.55,
+    metalness: 0.05,
+  });
+  const podiumMat = stoneMat(0xc0a890);
+  // Podium base
+  const podium = new THREE.Mesh(
+    new THREE.BoxGeometry(20, 2, 11),
+    podiumMat
+  );
+  podium.position.y = 1;
+  g.add(podium);
+  // Shells — half-spheres tilted to look like sails. 3 clusters of 3 shells.
+  const shellPositions: [number, number, number, number, number][] = [
+    // [x, z, scaleX, scaleZ, tiltZ]
+    [-6, -1, 3.5, 4.5, 0.15],
+    [-3.5, 0.5, 3, 4, 0.18],
+    [-1, 1.5, 2.5, 3.2, 0.22],
+    [1.5, -1, 3, 4, -0.15],
+    [4, 0.5, 2.7, 3.6, -0.2],
+    [6, 1.5, 2.2, 3, -0.24],
+  ];
+  for (const [x, z, sx, sz, tilt] of shellPositions) {
+    const shell = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      shellMat
+    );
+    shell.scale.set(sx, sz * 1.2, sz * 0.7);
+    shell.position.set(x, 2, z);
+    shell.rotation.x = -tilt * 0.5;
+    shell.rotation.z = tilt;
+    g.add(shell);
+  }
+  return g;
+}
+
+/** Shanghai Oriental Pearl Tower — tripod legs with pink/red orbs */
+function buildPearlTower(): THREE.Group {
+  const g = new THREE.Group();
+  const concreteMat = stoneMat(0xc8c0b8);
+  const orbMat = new THREE.MeshStandardMaterial({
+    color: 0xc8284a,
+    roughness: 0.45,
+    metalness: 0.35,
+    emissive: 0x6a1020,
+    emissiveIntensity: 0.4,
+  });
+  // Three tapered legs angled inward at the base, meeting at first orb
+  for (let i = 0; i < 3; i++) {
+    const ang = (i / 3) * Math.PI * 2;
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.55, 8, 8),
+      concreteMat
+    );
+    leg.position.set(Math.cos(ang) * 1.2, 4, Math.sin(ang) * 1.2);
+    leg.rotation.z = Math.cos(ang) * 0.18;
+    leg.rotation.x = Math.sin(ang) * -0.18;
+    g.add(leg);
+  }
+  // Lower (large) orb
+  const orb1 = new THREE.Mesh(new THREE.SphereGeometry(2.6, 16, 12), orbMat);
+  orb1.position.y = 9;
+  g.add(orb1);
+  // Spine between orbs
+  const spine = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.45, 0.45, 22, 10),
+    concreteMat
+  );
+  spine.position.y = 22;
+  g.add(spine);
+  // Mid orb (smaller)
+  const orb2 = new THREE.Mesh(new THREE.SphereGeometry(1.9, 14, 10), orbMat);
+  orb2.position.y = 28;
+  g.add(orb2);
+  // Top spire
+  const spire = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.05, 0.3, 8, 8),
+    concreteMat
+  );
+  spire.position.y = 36;
+  g.add(spire);
+  // Antenna
+  const antenna = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.05, 3, 6),
+    concreteMat
+  );
+  antenna.position.y = 41.5;
+  g.add(antenna);
+  return g;
+}
+
+/** N Seoul Tower — Namsan mountain communications tower */
+function buildSeoulTower(): THREE.Group {
+  const g = new THREE.Group();
+  const concreteMat = stoneMat(0xe0e0e0);
+  const observMat = new THREE.MeshStandardMaterial({
+    color: 0x8a4a8a,
+    roughness: 0.4,
+    metalness: 0.4,
+    emissive: 0x4a1a4a,
+    emissiveIntensity: 0.5,
+  });
+  // Tapered concrete shaft
+  const shaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 1.2, 18, 12),
+    concreteMat
+  );
+  shaft.position.y = 9;
+  g.add(shaft);
+  // Observation deck (the iconic disc)
+  const deck = new THREE.Mesh(
+    new THREE.CylinderGeometry(2.4, 2.0, 1.6, 14),
+    observMat
+  );
+  deck.position.y = 19;
+  g.add(deck);
+  // Inner ring (lit windows)
+  const ring = new THREE.Mesh(
+    new THREE.CylinderGeometry(2.5, 2.5, 0.3, 14),
+    emissiveMat(0xffd28a, 1.5)
+  );
+  ring.position.y = 19;
+  g.add(ring);
+  // Upper antenna shaft
+  const upperShaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.35, 8, 8),
+    concreteMat
+  );
+  upperShaft.position.y = 24;
+  g.add(upperShaft);
+  // Antenna spike
+  const antenna = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.18, 6, 6),
+    concreteMat
+  );
+  antenna.position.y = 31;
+  g.add(antenna);
+  return g;
 }
 
 function buildEiffel(): THREE.Group {

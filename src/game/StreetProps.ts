@@ -91,27 +91,36 @@ type PropKind =
   | "hedge";
 
 function kindsForTheme(theme: Theme): PropKind[] {
-  // Each theme has bushCluster + hedge mixed in for the dense Subway-Surfers
-  // look. Lampposts, flags, signs are interspersed.
+  // Flags REMOVED from periodic props — they only appear at country-entry
+  // (Game.checkThemeSwitch → world.spawnFlagPair). Oscar: "Bayrak her yerde
+  // olmayacak. Bayrak, sadece ülkeye girerken olacak."
   switch (theme.id) {
     case "usa":
-      return ["lamp", "bushCluster", "tree", "hedge", "flag", "tree", "hydrant", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "flag", "tree", "lamp"];
+      return ["lamp", "tree", "hedge", "bushCluster", "tree", "hydrant", "sign", "lamp", "tree", "hedge", "bench", "tree", "bushCluster", "lamp", "tree", "bushCluster"];
     case "brazil":
-      return ["palm", "bushCluster", "palm", "hedge", "flag", "palm", "bushCluster", "lamp", "palm", "tree", "bench", "palm", "hedge", "flag", "palm", "bushCluster"];
+      return ["palm", "palm", "hedge", "bushCluster", "palm", "lamp", "palm", "tree", "bench", "palm", "hedge", "palm", "bushCluster", "palm", "lamp", "palm"];
     case "france":
-      return ["parisLamp", "tree", "bushCluster", "bistro", "hedge", "tree", "parisLamp", "tree", "bushCluster", "flag", "tree", "bistro", "bench", "hedge", "tree", "parisLamp"];
+      return ["parisLamp", "bushCluster", "bistro", "hedge", "tree", "parisLamp", "bushCluster", "tree", "bistro", "bench", "hedge", "tree", "parisLamp", "tree", "bushCluster", "bistro"];
     case "japan":
-      return ["lantern", "cherry", "bushCluster", "torii", "lantern", "cherry", "bamboo", "hedge", "lantern", "cherry", "bushCluster", "flag", "lantern", "cherry", "torii", "bamboo"];
+      return ["lantern", "bushCluster", "torii", "lantern", "cherry", "hedge", "lantern", "cherry", "bushCluster", "lantern", "cherry", "torii", "bamboo", "lantern", "bushCluster", "cherry"];
     case "turkey":
-      return ["lamp", "tree", "bushCluster", "lantern", "hedge", "tree", "palm", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "flag", "tree", "lamp"];
+      return ["lamp", "bushCluster", "lantern", "hedge", "tree", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "tree", "lantern", "lamp", "bushCluster", "tree"];
     case "uk":
-      return ["parisLamp", "tree", "bushCluster", "hedge", "tree", "parisLamp", "bench", "tree", "bushCluster", "flag", "tree", "bistro", "hedge", "parisLamp", "tree", "lamp"];
+      return ["parisLamp", "bushCluster", "hedge", "tree", "parisLamp", "bench", "bushCluster", "tree", "bistro", "hedge", "parisLamp", "tree", "lamp", "tree", "bushCluster", "bistro"];
     case "russia":
-      return ["snowpine", "snowpine", "bushCluster", "snowman", "snowpine", "bear", "hedge", "firebarrel", "snowpine", "bushCluster", "flag", "snowpine", "snowpine", "snowman", "lamp", "snowpine"];
+      return ["snowpine", "bushCluster", "snowman", "snowpine", "bear", "firebarrel", "snowpine", "bushCluster", "snowpine", "snowman", "snowpine", "lamp", "snowpine", "bushCluster", "snowpine", "snowman"];
     case "uae":
-      return ["palm", "bushCluster", "palm", "hedge", "palm", "lamp", "palm", "bushCluster", "sign", "palm", "bench", "palm", "hedge", "flag", "palm", "lamp"];
+      return ["palm", "palm", "hedge", "palm", "lamp", "bushCluster", "sign", "palm", "bench", "palm", "hedge", "palm", "lamp", "palm", "bushCluster", "palm"];
     case "egypt":
-      return ["palm", "bushCluster", "obelisk", "palm", "hedge", "obelisk", "palm", "bushCluster", "lamp", "palm", "bench", "palm", "hedge", "flag", "palm", "obelisk"];
+      return ["palm", "obelisk", "palm", "hedge", "obelisk", "bushCluster", "lamp", "palm", "bench", "palm", "hedge", "palm", "obelisk", "palm", "bushCluster", "obelisk"];
+    case "italy":
+      return ["lamp", "tree", "bushCluster", "bistro", "hedge", "tree", "lamp", "bushCluster", "bench", "tree", "bistro", "hedge", "lamp", "tree", "bushCluster", "tree"];
+    case "australia":
+      return ["palm", "tree", "bushCluster", "lamp", "hedge", "palm", "tree", "bushCluster", "bench", "palm", "lamp", "hedge", "tree", "palm", "bushCluster", "lamp"];
+    case "china":
+      return ["lantern", "bushCluster", "lamp", "lantern", "hedge", "lamp", "bushCluster", "lantern", "bench", "lamp", "lantern", "hedge", "bushCluster", "lantern", "lamp", "bushCluster"];
+    case "korea":
+      return ["lamp", "tree", "bushCluster", "lantern", "hedge", "tree", "lamp", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "lantern", "tree", "lamp"];
     default:
       return ["lamp", "tree", "sign", "bushCluster", "hedge"];
   }
@@ -186,33 +195,82 @@ function buildPineTree(): THREE.Group {
 }
 
 function buildPalmTree(): THREE.Group {
+  // Tropikal palmiye — uzun kıvrık gövde + 11 yaprak (was 7) + hindistan
+  // cevizi salkımı. Daha büyük ve hava verici (Oscar: "Brezilya'nın kendi
+  // havasını vermesi lazım").
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 5, 10), mat(0x6a4a2a));
-  trunk.position.y = 2.5;
-  // Curve trunk a bit by tilting
-  trunk.rotation.z = (Math.random() - 0.5) * 0.2;
-  g.add(trunk);
-  // Fronds
-  for (let i = 0; i < 7; i++) {
-    const ang = (i / 7) * Math.PI * 2;
-    const frond = new THREE.Mesh(
-      new THREE.ConeGeometry(0.3, 2.2, 5),
-      mat(0x3a7a3a)
+  const TRUNK_H = 7.0; // was 5.0
+  const segs = 6;
+  const segH = TRUNK_H / segs;
+  // Gövde — segmentlere bölüp her segmenti hafif farklı eğip üst üste
+  // koyarak doğal "kıvrık" tropikal palmiye silüeti
+  const lean = (Math.random() - 0.5) * 0.6; // overall lean direction
+  let yCursor = 0;
+  let xCursor = 0;
+  for (let s = 0; s < segs; s++) {
+    const r1 = 0.36 - (s / segs) * 0.18; // taper
+    const r2 = r1 - 0.025;
+    const seg = new THREE.Mesh(
+      new THREE.CylinderGeometry(r2, r1, segH * 1.05, 10),
+      mat(0x6a4a2a, { rough: 0.85 })
     );
-    frond.position.set(Math.cos(ang) * 0.9, 5, Math.sin(ang) * 0.9);
-    frond.rotation.z = Math.cos(ang) * 1.1;
-    frond.rotation.x = Math.sin(ang) * -1.1;
+    // Her segment hafif daha eğik → kümülatif curve
+    const curve = lean * (s / segs) * 0.18;
+    seg.rotation.z = curve;
+    seg.position.set(xCursor, yCursor + segH / 2, 0);
+    g.add(seg);
+    // Halka detay (palmiye bilezikleri)
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(r1 + 0.02, 0.04, 6, 14),
+      mat(0x4a3018, { rough: 0.95 })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(xCursor + curve * segH * 0.5, yCursor + segH * 0.85, 0);
+    g.add(ring);
+    yCursor += segH;
+    xCursor += Math.sin(curve) * segH;
+  }
+  const topY = yCursor;
+  const topX = xCursor;
+  // Yapraklar — 11 fronds, daha geniş ve uzun, alçaktan yukarı
+  // yelpaze gibi açılırlar
+  const FROND_COUNT = 11;
+  for (let i = 0; i < FROND_COUNT; i++) {
+    const ang = (i / FROND_COUNT) * Math.PI * 2 + Math.random() * 0.15;
+    const len = 2.6 + Math.random() * 0.8;
+    const frond = new THREE.Mesh(
+      new THREE.ConeGeometry(0.35, len, 5),
+      mat(0x3a7a3a, { rough: 0.7 })
+    );
+    // Yatay düzlemde yelpaze + hafif sarkan uçlar
+    const droop = 0.85 + Math.random() * 0.4;
+    frond.position.set(
+      topX + Math.cos(ang) * 1.05,
+      topY + 0.25 - droop * 0.15,
+      Math.sin(ang) * 1.05
+    );
+    frond.rotation.z = Math.cos(ang) * droop;
+    frond.rotation.x = Math.sin(ang) * -droop;
     frond.rotation.y = ang;
     g.add(frond);
+    // Yaprak ortasındaki nervure (orta damar) — koyu gölgesi için ince mesh
+    const vein = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.06, len * 0.8, 4),
+      mat(0x2a4a22, { rough: 0.95 })
+    );
+    vein.position.copy(frond.position);
+    vein.rotation.copy(frond.rotation);
+    g.add(vein);
   }
-  // Coconut cluster
-  for (let i = 0; i < 3; i++) {
+  // Hindistan cevizi salkımı — 5 koyu kahve top
+  for (let i = 0; i < 5; i++) {
     const coco = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 8, 6),
-      mat(0x3a2010)
+      new THREE.SphereGeometry(0.22, 8, 6),
+      mat(0x3a2010, { rough: 0.6 })
     );
     const a = Math.random() * Math.PI * 2;
-    coco.position.set(Math.cos(a) * 0.3, 4.7, Math.sin(a) * 0.3);
+    const r = 0.32 + Math.random() * 0.15;
+    coco.position.set(topX + Math.cos(a) * r, topY - 0.35, Math.sin(a) * r);
     g.add(coco);
   }
   return g;

@@ -63,6 +63,27 @@ const TARGET_HEIGHT: Record<string, number> = {
   russia_overhead: 3.2,
   uae_overhead: 3.4,
   egypt_overhead: 3.4,
+  italy_overhead: 3.4,
+  australia_overhead: 3.4,
+  china_overhead: 3.4,
+  korea_overhead: 3.4,
+  // New theme lane / jump obstacles
+  italy_vespa: 1.3,
+  italy_fountain: 1.6,
+  italy_column: 2.4,
+  italy_gelato: 1.4,
+  australia_surfboard: 2.2,
+  australia_bbq: 1.2,
+  australia_kangaroosign: 2.0,
+  australia_esky: 1.0,
+  china_lantern: 1.6,
+  china_dragon: 1.8,
+  china_jadevase: 1.4,
+  china_dimsum: 1.3,
+  korea_kimchi: 1.2,
+  korea_kpopsign: 2.0,
+  korea_foodcart: 1.5,
+  korea_hanbok: 1.8,
 };
 
 // Overheads need to span across a lane (wider) — opt out of the strict
@@ -70,7 +91,8 @@ const TARGET_HEIGHT: Record<string, number> = {
 const OVERHEAD_KINDS = new Set([
   "usa_overhead", "brazil_overhead", "france_overhead", "japan_overhead",
   "turkey_overhead", "uk_overhead", "russia_overhead", "uae_overhead",
-  "egypt_overhead",
+  "egypt_overhead", "italy_overhead", "australia_overhead",
+  "china_overhead", "korea_overhead",
 ]);
 
 // Kinds that should keep their natural aspect ratio (LANE blockers).

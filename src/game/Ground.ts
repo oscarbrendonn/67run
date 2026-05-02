@@ -23,14 +23,72 @@ export interface GroundMaterial {
   tint: number;
 }
 
-/** All themes share a clean concrete sidewalk for now (Oscar: "her harita
- *  için birşey bulcam, NYC'de ilk deneyeceğim"). Per-theme snow/sand/grass
- *  variants kept below as functions so we can switch them on later. */
-let sharedConcrete: GroundMaterial | null = null;
-export function getGroundMaterial(_themeId: string): GroundMaterial {
-  if (sharedConcrete) return sharedConcrete;
-  sharedConcrete = makeConcrete();
-  return sharedConcrete;
+/** Per-theme cache — generate each surface once. */
+const cache = new Map<string, GroundMaterial>();
+
+/** Pick the right surface for each country. NYC concrete sidewalk for
+ *  USA/UK, snow for Russia, sand for Egypt/UAE, beach for Brazil, etc. */
+export function getGroundMaterial(themeId: string): GroundMaterial {
+  const hit = cache.get(themeId);
+  if (hit) return hit;
+  let mat: GroundMaterial;
+  switch (themeId) {
+    case "russia":   mat = makeSnow(); break;
+    case "egypt":
+    case "uae":      mat = makeSand(); break;
+    case "brazil":   mat = makeBeach(); break;
+    case "france":
+    case "uk":       mat = makeCobblestone(0xa8a098); break;
+    case "japan":
+    case "china":    mat = makeWetAsphalt(); break;       // China = neon-wet street
+    case "turkey":   mat = makeStoneSlabs(); break;
+    case "italy":    mat = makeCobblestone(0xc8a878); break; // Italian travertine cobblestone
+    case "australia":mat = makeBeach(); break;             // Sydney harbour beach
+    case "korea":    mat = makeConcrete(); break;          // modern Seoul concrete
+    case "usa":
+    default:         mat = makeConcrete(); break;
+  }
+  cache.set(themeId, mat);
+  return mat;
+}
+
+function makeBeach(): GroundMaterial {
+  // Rio sahili — Oscar: "açık sarı kötü duruyor, kalitesiz". Daha koyu
+  // kahve-kum tonu, sarıyı tamamen geri çekiyoruz. Mostly dark patches.
+  const c = canvas(512);
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#8a6a4a"; // koyu kahve-kum (was #b8946a)
+  ctx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 160; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512;
+    const r = 22 + Math.random() * 44;
+    const lighter = Math.random() > 0.78;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, lighter ? "rgba(160,130,90,0.4)" : "rgba(60,40,22,0.5)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // Ince dalga/sürüklenme izleri
+  ctx.strokeStyle = "rgba(95,70,40,0.22)";
+  ctx.lineWidth = 1.5;
+  for (let yy = 0; yy < 512; yy += 30) {
+    ctx.beginPath();
+    for (let x = 0; x < 512; x += 6) {
+      const y = yy + Math.sin(x * 0.04 + yy * 0.02) * 8;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  // Deniz kabukları — daha az ve daha küçük
+  for (let i = 0; i < 14; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512;
+    ctx.fillStyle = `rgba(${230 - Math.random()*40}, ${210 - Math.random()*30}, ${180}, 0.75)`;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 2 + Math.random()*2, 1 + Math.random()*1.5, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return { map: tileable(c, 1.5, 3), roughness: 0.95, tint: 0xffffff };
 }
 
 function makeSnow(): GroundMaterial {
@@ -67,65 +125,66 @@ function makeSnow(): GroundMaterial {
     ctx.fill();
   }
   return {
-    map: tileable(c, 8, 18),
+    map: tileable(c, 2, 4),
     roughness: 0.85,
     tint: 0xffffff, // texture carries its color
   };
 }
 
 function makeSand(): GroundMaterial {
-  const c = canvas(256);
+  // Darker, less-yellow desert sand (Oscar: "sarıyı sevmiyorum, çirkin
+  // duruyor"). Reddish-brown base with mostly darker patches.
+  const c = canvas(512);
   const ctx = c.getContext("2d")!;
-  // Warm sand base
-  ctx.fillStyle = "#c8a878";
-  ctx.fillRect(0, 0, 256, 256);
-  // Color variation (lighter and darker sand patches)
-  for (let i = 0; i < 80; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const r = 12 + Math.random() * 28;
-    const lighter = Math.random() > 0.5;
+  ctx.fillStyle = "#8a6840";
+  ctx.fillRect(0, 0, 512, 512);
+  // Color variation (mostly darker patches, occasional lighter highlight)
+  for (let i = 0; i < 130; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const r = 22 + Math.random() * 50;
+    const lighter = Math.random() > 0.7;
     const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
     grad.addColorStop(0, lighter
-      ? "rgba(232, 200, 140, 0.5)"
-      : "rgba(150, 110, 60, 0.4)");
+      ? "rgba(180, 140, 90, 0.4)"
+      : "rgba(80, 55, 30, 0.5)");
     grad.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = grad;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   // Sand grain noise
-  for (let i = 0; i < 1500; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const dark = Math.random() > 0.5;
+  for (let i = 0; i < 3000; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const dark = Math.random() > 0.4;
     ctx.fillStyle = dark
-      ? `rgba(120, 90, 50, 0.3)`
-      : `rgba(232, 210, 160, 0.4)`;
-    ctx.fillRect(x, y, 1.5, 1.5);
+      ? `rgba(60, 40, 22, 0.35)`
+      : `rgba(180, 140, 90, 0.35)`;
+    ctx.fillRect(x, y, 2, 2);
   }
   // Ripple lines (windswept sand)
-  ctx.strokeStyle = "rgba(150, 110, 60, 0.18)";
-  ctx.lineWidth = 0.8;
-  for (let yy = 0; yy < 256; yy += 14) {
+  ctx.strokeStyle = "rgba(60, 40, 22, 0.22)";
+  ctx.lineWidth = 1.2;
+  for (let yy = 0; yy < 512; yy += 26) {
     ctx.beginPath();
-    for (let x = 0; x < 256; x += 4) {
-      const y = yy + Math.sin(x * 0.06 + yy * 0.04) * 4;
+    for (let x = 0; x < 512; x += 6) {
+      const y = yy + Math.sin(x * 0.05 + yy * 0.03) * 8;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
   }
-  // A few stones / debris
-  for (let i = 0; i < 12; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    ctx.fillStyle = `rgb(${100 + Math.floor(Math.random() * 40)}, ${80 + Math.floor(Math.random() * 30)}, ${50 + Math.floor(Math.random() * 20)})`;
+  // Darker stones / debris
+  for (let i = 0; i < 22; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    ctx.fillStyle = `rgb(${50 + Math.floor(Math.random() * 30)}, ${35 + Math.floor(Math.random() * 22)}, ${20 + Math.floor(Math.random() * 18)})`;
     ctx.beginPath();
-    ctx.ellipse(x, y, 2 + Math.random() * 2, 1 + Math.random() * 2, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.ellipse(x, y, 3 + Math.random() * 3, 2 + Math.random() * 2, Math.random() * Math.PI, 0, Math.PI * 2);
     ctx.fill();
   }
   return {
-    map: tileable(c, 6, 14),
+    map: tileable(c, 1.5, 3),
     roughness: 0.95,
     tint: 0xffffff,
   };
@@ -175,7 +234,7 @@ function makeJungleGrass(): GroundMaterial {
     ctx.stroke();
   }
   return {
-    map: tileable(c, 8, 18),
+    map: tileable(c, 2, 4),
     roughness: 0.95,
     tint: 0xffffff,
   };
@@ -212,7 +271,7 @@ function makeCobblestone(tintHex: number): GroundMaterial {
     }
   }
   return {
-    map: tileable(c, 5, 12),
+    map: tileable(c, 1.5, 3),
     roughness: 0.85,
     tint: tintHex,
   };
@@ -245,7 +304,7 @@ function makeStoneSlabs(): GroundMaterial {
     }
   }
   return {
-    map: tileable(c, 4, 10),
+    map: tileable(c, 1.2, 2.5),
     roughness: 0.9,
     tint: 0xffffff,
   };
@@ -283,7 +342,7 @@ function makeWetAsphalt(): GroundMaterial {
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   return {
-    map: tileable(c, 6, 14),
+    map: tileable(c, 1.5, 3),
     roughness: 0.35,
     tint: 0xffffff,
   };
@@ -293,13 +352,14 @@ function makeConcrete(): GroundMaterial {
   const c = canvas(256);
   const ctx = c.getContext("2d")!;
   // Mid-grey concrete (NOT bright white — Oscar's complaint)
-  ctx.fillStyle = "#7a7a7e";
+  // Daha koyu, gerçekçi beton — eski 0x7a7a7e göz alıyordu
+  ctx.fillStyle = "#5a5a5e";
   ctx.fillRect(0, 0, 256, 256);
-  // Grain
+  // Grain (daha koyu tonlar)
   for (let i = 0; i < 1000; i++) {
     const x = Math.random() * 256;
     const y = Math.random() * 256;
-    const tone = 100 + Math.floor(Math.random() * 50);
+    const tone = 70 + Math.floor(Math.random() * 40);
     ctx.fillStyle = `rgba(${tone}, ${tone}, ${tone + 5}, 0.5)`;
     ctx.fillRect(x, y, 2, 2);
   }
@@ -334,7 +394,7 @@ function makeConcrete(): GroundMaterial {
     ctx.fill();
   }
   return {
-    map: tileable(c, 6, 14),
+    map: tileable(c, 1.5, 3),
     roughness: 0.92,
     tint: 0xffffff,
   };

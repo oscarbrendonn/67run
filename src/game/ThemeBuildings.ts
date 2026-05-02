@@ -294,9 +294,107 @@ export function buildThemeBuilding(theme: Theme, slot: number): ThemeBuilding {
       return buildDubai(slot);
     case "egypt":
       return buildCairo(slot);
+    case "italy":
+    case "australia":
+    case "china":
+    case "korea":
+      return buildGeneric(theme, slot);
     default:
       return fallback();
   }
+}
+
+/** Generic theme builder — 5 silhouettes pulled from theme.buildingPalette,
+ *  used as the primitive fallback for newly-added countries until their
+ *  hand-modeled GLBs land. Slot-deterministic so adjacent buildings stay
+ *  varied. */
+function buildGeneric(theme: Theme, slot: number): ThemeBuilding {
+  const palette = theme.buildingPalette;
+  const variants = 5;
+  const v = Math.abs(slot) % variants;
+  const colorMain = palette[v % palette.length];
+  const colorAccent = palette[(v + 2) % palette.length];
+  const matMain = stone(colorMain);
+  const matAccent = stone(colorAccent);
+  const g = new THREE.Group();
+  switch (v) {
+    case 0: {
+      // Modern slab tower
+      const body = new THREE.Mesh(new THREE.BoxGeometry(4.5, 18, 4.0), matMain);
+      body.position.y = 9;
+      g.add(body);
+      // Window grid
+      for (let r = 0; r < 7; r++) {
+        const win = new THREE.Mesh(
+          new THREE.BoxGeometry(3.6, 0.4, 0.05),
+          stone(0x202028)
+        );
+        win.position.set(0, 2 + r * 2.2, 2.02);
+        g.add(win);
+      }
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.4, 4.2), matAccent);
+      cap.position.y = 18.2;
+      g.add(cap);
+      break;
+    }
+    case 1: {
+      // Narrow tower with stepped top (Art Deco-ish)
+      const lower = new THREE.Mesh(new THREE.BoxGeometry(3.6, 12, 3.6), matMain);
+      lower.position.y = 6;
+      g.add(lower);
+      const upper = new THREE.Mesh(new THREE.BoxGeometry(2.6, 6, 2.6), matMain);
+      upper.position.y = 15;
+      g.add(upper);
+      const spire = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3, 0.6), matAccent);
+      spire.position.y = 19.5;
+      g.add(spire);
+      break;
+    }
+    case 2: {
+      // Wide podium + small tower (mall / station style)
+      const podium = new THREE.Mesh(new THREE.BoxGeometry(5.5, 5, 4.0), matMain);
+      podium.position.y = 2.5;
+      g.add(podium);
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(3.0, 10, 3.0), matAccent);
+      tower.position.set(0.6, 10, 0);
+      g.add(tower);
+      break;
+    }
+    case 3: {
+      // Twin-peaked apartment block
+      const left = new THREE.Mesh(new THREE.BoxGeometry(2.4, 14, 3.4), matMain);
+      left.position.set(-1.4, 7, 0);
+      g.add(left);
+      const right = new THREE.Mesh(new THREE.BoxGeometry(2.4, 14, 3.4), matAccent);
+      right.position.set(1.4, 7, 0);
+      g.add(right);
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.0, 3.0), matMain);
+      bridge.position.y = 14.5;
+      g.add(bridge);
+      break;
+    }
+    case 4:
+    default: {
+      // Short rowhouse (4 connected units, peaked roofs)
+      for (let i = -1; i <= 1; i++) {
+        const unit = new THREE.Mesh(
+          new THREE.BoxGeometry(1.7, 7, 3.4),
+          i === 0 ? matAccent : matMain
+        );
+        unit.position.set(i * 1.8, 3.5, 0);
+        g.add(unit);
+        const roof = new THREE.Mesh(
+          new THREE.ConeGeometry(1.4, 1.6, 4),
+          stone(0x4a2828)
+        );
+        roof.rotation.y = Math.PI / 4;
+        roof.position.set(i * 1.8, 7.6, 0);
+        g.add(roof);
+      }
+      break;
+    }
+  }
+  return { group: g, mainMaterials: [matMain], accentMaterials: [matAccent] };
 }
 
 /* ============================================================ */

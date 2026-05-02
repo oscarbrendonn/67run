@@ -91,21 +91,23 @@ function makeSkyTexture(themeId: string): THREE.Texture {
       drawSun(ctx, 1700, 100, 60, "#fff8d0", "#fff8d0", 0.6);
       break;
     case "brazil":
-      drawSun(ctx, 1500, 180, 70, "#ffd070", "#ff8030", 0.85);
-      drawWispClouds(ctx, W, H, 14, 0.55);
+      // Daytime — white-yellow sun + soft cumulus clouds (was sunset orange)
+      drawCumulusClouds(ctx, W, H, 28, 0.6);
+      drawSun(ctx, 1700, 110, 55, "#ffffff", "#fff5d8", 0.55);
       break;
     case "france":
       drawOvercast(ctx, W, H);
       drawWispClouds(ctx, W, H, 22, 0.5);
       break;
     case "japan":
-      drawStars(ctx, W, H, 220);
+      drawStars(ctx, W, H, 320);
       drawMoon(ctx, 1700, 110);
+      // Subtle neon glow at city-skyline horizon (Tokyo signature)
       drawNeonGlowHorizon(ctx, W, H);
       break;
     case "turkey":
-      drawSun(ctx, 1600, 180, 55, "#ffe070", "#ff8a40", 0.75);
-      drawWispClouds(ctx, W, H, 18, 0.55);
+      drawCumulusClouds(ctx, W, H, 22, 0.55);
+      drawSun(ctx, 1600, 130, 50, "#ffffff", "#fff5d8", 0.5);
       break;
     case "uk":
       drawOvercast(ctx, W, H);
@@ -116,12 +118,28 @@ function makeSkyTexture(themeId: string): THREE.Texture {
       drawWispClouds(ctx, W, H, 18, 0.4);
       break;
     case "uae":
-      drawSun(ctx, 1600, 140, 80, "#ffe680", "#ff8030", 0.95);
-      drawDesertHaze(ctx, W, H);
+      drawCumulusClouds(ctx, W, H, 12, 0.45);
+      drawSun(ctx, 1600, 140, 60, "#ffffff", "#fff5d8", 0.65);
       break;
     case "egypt":
-      drawSun(ctx, 1500, 200, 70, "#fff080", "#ff8030", 0.85);
-      drawDesertHaze(ctx, W, H);
+      drawCumulusClouds(ctx, W, H, 14, 0.5);
+      drawSun(ctx, 1500, 160, 55, "#ffffff", "#fff5d8", 0.55);
+      break;
+    case "italy":
+      drawCumulusClouds(ctx, W, H, 30, 0.6);
+      drawSun(ctx, 1700, 110, 55, "#ffffff", "#fff5d8", 0.55);
+      break;
+    case "australia":
+      drawCumulusClouds(ctx, W, H, 24, 0.55);
+      drawSun(ctx, 1600, 130, 60, "#ffffff", "#fff5d8", 0.6);
+      break;
+    case "china":
+      drawStars(ctx, W, H, 280);
+      drawNeonGlowHorizon(ctx, W, H);
+      break;
+    case "korea":
+      drawCumulusClouds(ctx, W, H, 26, 0.55);
+      drawSun(ctx, 1600, 130, 50, "#ffffff", "#fff5d8", 0.5);
       break;
   }
 
@@ -156,25 +174,36 @@ interface SkyPalette {
 }
 
 function paletteFor(themeId: string): SkyPalette {
+  // Daytime BLUE skies for every country (Oscar: "hava her yerde mavi
+  // olacak, böyle sarı falan yapma"). Japan stays night/black with a
+  // subtle horizon neon (his "Japonya'da akşam siyah olabilir").
   switch (themeId) {
     case "usa":
       return { top: "#1a4a90", mid: "#5aa0e0", horizon: "#cae8ff" };
     case "brazil":
-      return { top: "#7a2050", mid: "#ff7a40", horizon: "#ffd870" };
+      return { top: "#1a5aa0", mid: "#5aa8e0", horizon: "#c8e4f8" };
     case "france":
       return { top: "#6a7898", mid: "#a8b8cc", horizon: "#dce2ec" };
     case "japan":
-      return { top: "#0a0828", mid: "#251650", horizon: "#7a3878" };
+      return { top: "#020410", mid: "#070a1a", horizon: "#0e1428" };
     case "turkey":
-      return { top: "#5a3018", mid: "#d87040", horizon: "#ffaa60" };
+      return { top: "#2a5a90", mid: "#7aa8c8", horizon: "#cee2ec" };
     case "uk":
       return { top: "#5a6878", mid: "#8a98a8", horizon: "#c0c8d0" };
     case "russia":
       return { top: "#3a5078", mid: "#7a90b0", horizon: "#bcc4d0" };
     case "uae":
-      return { top: "#5a2018", mid: "#ff8830", horizon: "#ffd060" };
+      return { top: "#2a5e90", mid: "#7ab0d0", horizon: "#d0e4ec" };
     case "egypt":
-      return { top: "#7a3818", mid: "#ff9050", horizon: "#ffd080" };
+      return { top: "#3a6890", mid: "#88b4cc", horizon: "#d4e4ec" };
+    case "italy":
+      return { top: "#1a5a9a", mid: "#5aa0d8", horizon: "#c8e0f0" };
+    case "australia":
+      return { top: "#1a78c0", mid: "#5ab8e8", horizon: "#d8eef8" };
+    case "china":
+      return { top: "#080c1c", mid: "#15203a", horizon: "#2a3458" };
+    case "korea":
+      return { top: "#2a6aa8", mid: "#7ab0d4", horizon: "#cce0ec" };
     default:
       return { top: "#1a4a90", mid: "#5aa0e0", horizon: "#cae8ff" };
   }

@@ -209,14 +209,22 @@ function make67TagTexture(asSign = false): THREE.Texture {
   const ctx = c.getContext("2d")!;
   ctx.clearRect(0, 0, c.width, c.height);
   if (asSign) {
+    // Two-line tunnel signage (Oscar: "tünel uzunluğu 6-7 metre yazsın
+    // İngilizce"). Top line = label, bottom line = the value, both English.
     ctx.fillStyle = "#ffd257";
     ctx.strokeStyle = "#2a1500";
-    ctx.lineWidth = 8;
-    ctx.font = "900 140px -apple-system, Inter, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.strokeText("67 METRO", 256, 100);
-    ctx.fillText("67 METRO", 256, 100);
+    // Top — "TUNNEL LENGTH" (smaller label)
+    ctx.lineWidth = 5;
+    ctx.font = "900 56px -apple-system, Inter, Arial";
+    ctx.strokeText("TUNNEL LENGTH", 256, 60);
+    ctx.fillText("TUNNEL LENGTH", 256, 60);
+    // Bottom — "6-7 M" (large bold value)
+    ctx.lineWidth = 8;
+    ctx.font = "900 110px -apple-system, Inter, Arial";
+    ctx.strokeText("6-7 M", 256, 140);
+    ctx.fillText("6-7 M", 256, 140);
   } else {
     ctx.save();
     ctx.translate(256, 160);

@@ -1397,6 +1397,56 @@ export function buildCanopicJars(): ThemeObstacle {
   return { group: g, height: 1.3, dodgeType: "jump" };
 }
 
+/** Generic city banner overhead — two poles + banner with city name.
+ *  Used as the slide-under for newly-added themes (italy/australia/china/
+ *  korea) until each gets a hand-modeled overhead. */
+function buildBannerOverhead(color: number, label: string): ThemeObstacle {
+  const g = new THREE.Group();
+  const poleMat = stone(0x2a2a32, 0.6);
+  // Two side poles
+  for (const x of [-1.1, 1.1]) {
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.09, 2.4, 8),
+      poleMat
+    );
+    pole.position.set(x, 1.2, 0);
+    g.add(pole);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), poleMat);
+    cap.position.set(x, 2.42, 0);
+    g.add(cap);
+  }
+  // Top crossbar
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(2.4, 0.12, 0.14),
+    poleMat
+  );
+  bar.position.set(0, 2.32, 0);
+  g.add(bar);
+  // Banner cloth (hangs below crossbar)
+  const banner = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.0, 0.55),
+    new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.7,
+      side: THREE.DoubleSide,
+    })
+  );
+  banner.position.set(0, 1.95, 0);
+  g.add(banner);
+  // City label on banner
+  const sign = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.6, 0.42),
+    new THREE.MeshBasicMaterial({
+      map: makeSignTex(label, "transparent", "#ffffff"),
+      transparent: true,
+    })
+  );
+  sign.position.set(0, 1.95, 0.01);
+  g.add(sign);
+  shadowAll(g);
+  return { group: g, height: 2.4, dodgeType: "slide" };
+}
+
 /* ================================ Helpers ================================ */
 
 let signTexCache = new Map<string, THREE.Texture>();
@@ -1484,10 +1534,19 @@ export type ThemeObstacleKind =
   | "uae_oilbarrel" | "uae_datesyramid" | "uae_falcon"
   // Egypt — primitive only (sphinx, hieroglyph stele, ankh, canopic jars)
   | "egypt_sphinx" | "egypt_stele" | "egypt_ankh" | "egypt_canopic"
+  // Italy — Vespa, fountain, marble column, gelato cart
+  | "italy_vespa" | "italy_fountain" | "italy_column" | "italy_gelato"
+  // Australia — surfboard rack, BBQ grill, kangaroo sign, esky cooler
+  | "australia_surfboard" | "australia_bbq" | "australia_kangaroosign" | "australia_esky"
+  // China — red lantern stand, dragon statue, jade vase, dim sum cart
+  | "china_lantern" | "china_dragon" | "china_jadevase" | "china_dimsum"
+  // Korea — kimchi pot, K-pop sign, food cart (tteokbokki), hanbok dummy
+  | "korea_kimchi" | "korea_kpopsign" | "korea_foodcart" | "korea_hanbok"
   // Overhead / overpass — slide-under (primitive only)
   | "usa_overhead" | "brazil_overhead" | "france_overhead" | "japan_overhead"
   | "turkey_overhead" | "uk_overhead" | "russia_overhead" | "uae_overhead"
-  | "egypt_overhead";
+  | "egypt_overhead" | "italy_overhead" | "australia_overhead"
+  | "china_overhead" | "korea_overhead";
 
 /** Per-theme JUMP/LANE pool (the everyday obstacle mix). */
 const THEME_POOL: Record<string, ThemeObstacleKind[]> = {
@@ -1500,6 +1559,10 @@ const THEME_POOL: Record<string, ThemeObstacleKind[]> = {
   russia: ["icepatch", "vodka", "russia_samovar", "russia_ushanka", "russia_matryoshka"],
   uae: ["goldstand", "palmcrate", "uae_oilbarrel", "uae_datesyramid", "uae_falcon"],
   egypt: ["egypt_sphinx", "egypt_stele", "egypt_ankh", "egypt_canopic"],
+  italy: ["italy_vespa", "italy_fountain", "italy_column", "italy_gelato"],
+  australia: ["australia_surfboard", "australia_bbq", "australia_kangaroosign", "australia_esky"],
+  china: ["china_lantern", "china_dragon", "china_jadevase", "china_dimsum"],
+  korea: ["korea_kimchi", "korea_kpopsign", "korea_foodcart", "korea_hanbok"],
 };
 
 /** Per-theme overhead / slide-under obstacle. */
@@ -1513,6 +1576,10 @@ const THEME_OVERHEAD: Record<string, ThemeObstacleKind> = {
   russia: "russia_overhead",
   uae: "uae_overhead",
   egypt: "egypt_overhead",
+  italy: "italy_overhead",
+  australia: "australia_overhead",
+  china: "china_overhead",
+  korea: "korea_overhead",
 };
 
 /** Kinds that are inherently tall — player CANNOT clear them by jumping.
@@ -1529,7 +1596,8 @@ const LANE_KINDS = new Set<ThemeObstacleKind>([
 const SLIDE_KINDS = new Set<ThemeObstacleKind>([
   "usa_overhead", "brazil_overhead", "france_overhead", "japan_overhead",
   "turkey_overhead", "uk_overhead", "russia_overhead", "uae_overhead",
-  "egypt_overhead",
+  "egypt_overhead", "italy_overhead", "australia_overhead",
+  "china_overhead", "korea_overhead",
 ]);
 
 /** Look up the dodge type for a kind without building the mesh. */
@@ -1582,6 +1650,11 @@ export function buildThemeObstacle(kind: ThemeObstacleKind): ThemeObstacle {
     case "egypt_stele": return buildHieroStele();
     case "egypt_ankh": return buildAnkhPedestal();
     case "egypt_canopic": return buildCanopicJars();
+    // New themes — generic banner-style overhead until per-theme art lands
+    case "italy_overhead": return buildBannerOverhead(0xc83838, "ROMA");
+    case "australia_overhead": return buildBannerOverhead(0x2a78c8, "SYDNEY");
+    case "china_overhead": return buildBannerOverhead(0xc82828, "上海");
+    case "korea_overhead": return buildBannerOverhead(0xff5078, "SEOUL");
     // For NEW kinds (3D-only, no primitive), return a small generic placeholder
     // sized for the kind's dodge type. The GLB loader will swap to actual 3D
     // once /models/obstacles/<kind>.glb loads.

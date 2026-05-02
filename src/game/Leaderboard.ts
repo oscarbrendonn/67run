@@ -20,44 +20,29 @@ export interface ScoreEntry {
 
 // v2: bumped from v1 (top-10) to top-100 with seed-of-100. Old v1 data is
 // dropped so the seed reflects the new size.
-const KEY_BOARD = "67runner.leaderboard.v2";
+// v5: 10 plausible Western seed names with REASONABLE distances so a
+// real player can beat them on a normal run. (v4 had 12 names + huge
+// 14000m top distance — felt rigged.)
+const KEY_BOARD = "67runner.leaderboard.v5";
 const KEY_NAME = "67runner.username";
 const MAX_STORED = 500;
 const DISPLAY_LIMIT = 100;
 
-/** Seed of 100 plausible entries so the board doesn't look empty on first
- *  visit. Distance distribution decays geometrically so #1 looks "elite". */
-const SEED: ScoreEntry[] = (() => {
-  const names = [
-    "MAV", "67KID", "TILKI", "ZARP", "NEO", "RIO", "TOKYO", "PARIS", "LDN",
-    "MOSKOVA", "DUBAI", "CAIRO", "BERLIN", "MILAN", "MADRID", "VENEDIK",
-    "ATINA", "PRAG", "VIYANA", "AMSTERDAM", "OSLO", "STOKHOLM", "HELSINKI",
-    "LIZBON", "BARSELONA", "MUNIH", "ZURIH", "CENEVRE", "BRUKSEL", "DUBLIN",
-    "EDINBURGH", "MANCHESTER", "LIVERPOOL", "GLASGOW", "BIRMINGHAM", "LEEDS",
-    "BURSA", "ANKARA", "IZMIR", "ANTALYA", "KONYA", "TRABZON", "DIYARBAKIR",
-    "MERSIN", "ESKISEHIR", "GAZIANTEP", "MALATYA", "VAN", "ERZURUM", "SAMSUN",
-    "BAKU", "TASKENT", "DOHA", "RIYAD", "BEYRUT", "AMMAN", "TUNUS", "RABAT",
-    "KAHIRE", "ADDIS", "NAIROBI", "LAGOS", "ACCRA", "DAKAR", "JOHANNESBURG",
-    "DELHI", "MUMBAI", "BANGKOK", "SAIGON", "MANILA", "JAKARTA", "KUALA",
-    "SHANGHAI", "PEKIN", "GUANGZHOU", "HONGKONG", "TAIPEI", "SEUL", "OSAKA",
-    "KIYOTO", "NIKKO", "BRISBANE", "SYDNEY", "MELBOURNE", "AUCKLAND",
-    "VANCOUVER", "TORONTO", "MONTREAL", "MIAMI", "CHICAGO", "BOSTON", "LA",
-    "SEATTLE", "DENVER", "DALLAS", "HOUSTON", "AUSTIN", "PHOENIX", "ATLANTA",
-    "MEXICO", "BOGOTA", "LIMA", "BUENOS",
-  ];
-  const out: ScoreEntry[] = [];
-  for (let i = 0; i < 100; i++) {
-    // #1 ~14000m, #100 ~250m
-    const dist = Math.floor(14000 * Math.pow(0.965, i)) + Math.floor(Math.random() * 80);
-    out.push({
-      name: names[i] || `RUNNER${i + 1}`,
-      distance: dist,
-      coins: Math.floor(dist / 28),
-      date: Date.now() - 86400000 * (i + 1) * 0.4,
-    });
-  }
-  return out;
-})();
+/** Hand-picked seed: 10 entries, top score ~2.2 km, last ~420 m.
+ *  Real players easily slot in. Names are common Western first names
+ *  so the board doesn't read as "rigged with city names". */
+const SEED: ScoreEntry[] = [
+  { name: "MAV",    distance: 2240, coins: 80, date: Date.now() - 86400000 * 1 },
+  { name: "67KID",  distance: 1880, coins: 67, date: Date.now() - 86400000 * 2 },
+  { name: "ETHAN",  distance: 1520, coins: 54, date: Date.now() - 86400000 * 3 },
+  { name: "EMMA",   distance: 1290, coins: 46, date: Date.now() - 86400000 * 4 },
+  { name: "LIAM",   distance: 1095, coins: 39, date: Date.now() - 86400000 * 5 },
+  { name: "OLIVIA", distance:  925, coins: 33, date: Date.now() - 86400000 * 6 },
+  { name: "NOAH",   distance:  780, coins: 27, date: Date.now() - 86400000 * 7 },
+  { name: "AVA",    distance:  660, coins: 23, date: Date.now() - 86400000 * 8 },
+  { name: "MAX",    distance:  540, coins: 19, date: Date.now() - 86400000 * 9 },
+  { name: "SOPHIA", distance:  420, coins: 15, date: Date.now() - 86400000 * 10 },
+];
 
 export function getLeaderboard(): ScoreEntry[] {
   try {

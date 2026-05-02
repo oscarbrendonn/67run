@@ -269,7 +269,9 @@ function drawStar(
   ctx.restore();
 }
 
-/** Builds a flagpole prop with the given country's flag. */
+/** Builds a flagpole prop with the given country's flag.
+ *  BIG so the player notices it — Oscar said the old flags were invisible.
+ *  Pole 9.5m tall, flag 3.0×2.0m (was 6.2 / 1.8×1.2). */
 export function buildFlagPole(themeId: string): THREE.Group {
   const g = new THREE.Group();
   const poleMat = new THREE.MeshStandardMaterial({
@@ -278,30 +280,30 @@ export function buildFlagPole(themeId: string): THREE.Group {
     roughness: 0.3,
   });
   const pole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.06, 0.08, 6.2, 8),
+    new THREE.CylinderGeometry(0.09, 0.13, 9.5, 10),
     poleMat
   );
-  pole.position.y = 3.1;
+  pole.position.y = 4.75;
   g.add(pole);
-  // Pole top ball
+  // Pole top ball — bigger, more visible from distance
   const ball = new THREE.Mesh(
-    new THREE.SphereGeometry(0.12, 10, 8),
+    new THREE.SphereGeometry(0.2, 12, 10),
     new THREE.MeshStandardMaterial({
       color: 0xffd257,
       metalness: 0.8,
       roughness: 0.2,
     })
   );
-  ball.position.y = 6.3;
+  ball.position.y = 9.6;
   g.add(ball);
-  // Flag itself
+  // Flag itself — 3×2m, three times the area
   const tex = flagTexture(themeId);
-  const flagGeom = new THREE.PlaneGeometry(1.8, 1.2, 20, 12);
+  const flagGeom = new THREE.PlaneGeometry(3.0, 2.0, 22, 14);
   // Ripple effect — displace vertices in +X direction along y
   const pos = flagGeom.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
-    const ripple = Math.sin(x * 3.5) * 0.08 + Math.sin(x * 6 + 1.2) * 0.03;
+    const ripple = Math.sin(x * 2.4) * 0.16 + Math.sin(x * 4 + 1.2) * 0.06;
     pos.setZ(i, ripple);
   }
   pos.needsUpdate = true;
@@ -313,14 +315,15 @@ export function buildFlagPole(themeId: string): THREE.Group {
       roughness: 0.85,
     })
   );
-  flag.position.set(0.94, 5.4, 0);
+  // Anchor flag at its left edge to the pole — flag flies to +x
+  flag.position.set(1.55, 8.0, 0);
   g.add(flag);
-  // Base
+  // Base — bigger, more presence
   const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.2, 0.28, 0.3, 10),
+    new THREE.CylinderGeometry(0.32, 0.42, 0.45, 12),
     new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.85 })
   );
-  base.position.y = 0.15;
+  base.position.y = 0.225;
   g.add(base);
   return g;
 }

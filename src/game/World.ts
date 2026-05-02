@@ -1,9 +1,12 @@
 import * as THREE from "three";
 import { buildBridge } from "./Bridge";
 import { loadBuildingModel, pickBuildingModel, preloadThemeBuildings } from "./BuildingLoader";
+import { loadFlagModel } from "./FlagLoader";
+import { buildFlagPole } from "./Flags";
 import { buildFlyingCar } from "./FlyingCar";
 import { getGroundMaterial } from "./Ground";
 import { buildLandmark } from "./Landmarks";
+import { loadLandmarkModel } from "./LandmarkLoader";
 import { loadObstacleModel, preloadThemeObstacles } from "./ObstacleLoader";
 import { LANE_X } from "./Player";
 import { buildStreetProp } from "./StreetProps";
@@ -105,7 +108,10 @@ const INITIAL_SPAWN_Z = -55;
 // half-spacing so it fills the gaps in front row. Result: continuous
 // wall of buildings on both sides — Oscar: "binaların arası asla boş
 // olmayacak full kapalı estetik".
-const BUILDING_COUNT = 56;
+// 3-LAYER WALL: front / middle / back. 6 buildings per z-position
+// (L+R per layer × 3 layers). 13 z-positions × 6 = 78 buildings total —
+// completely fills the depth so no sky leaks behind the front row.
+const BUILDING_COUNT = 78;
 const BUILDING_SPACING = 6;
 const PROP_COUNT = 36;
 const PROP_SPACING = 8;
@@ -125,6 +131,12 @@ export class World {
   canalR!: THREE.Mesh;
   /** Animated ripple normal map applied to canal water. */
   canalNormalMap!: THREE.Texture;
+  /** Sidewalk + curb + slab seams + manholes — scroll together with road
+   *  so the kaldırım appears to move backward at the same rate as the
+   *  road, instead of looking statically forward (Oscar: "aradaki yol
+   *  ileri ilerliyor gibi"). Wraps every SIDEWALK_CYCLE meters. */
+  sidewalkGroup!: THREE.Group;
+  private sidewalkCycle = 0;
   buildings: Building[] = [];
   obstacles: Obstacle[] = [];
   /** Cache for theme road textures so theme-switch doesn't re-fetch */
@@ -222,13 +234,22 @@ export class World {
     scene.add(this.grassR);
 
     // SIDE STRIP — proper 3D city sidewalk: raised concrete plane + visible
-    // curb edge between road and sidewalk (Oscar: "binaların altını normal
-    // kaldırım ürettir 3D"). All themes share concrete for now.
+    // curb edge between road and sidewalk. ALL sidewalk geometry lives on
+    // a `sidewalkGroup` that scrolls in lockstep with the road, so the
+    // kaldırım visually moves backward at the same rate as the road
+    // instead of appearing to drift forward (Oscar: "aradaki yol ileri
+    // ilerliyor gibi … geriye doğru gitmesi lazım").
     const SIDEWALK_WIDTH = 4.5;
-    const SIDEWALK_Y = 0.18;        // raised 18cm above road
+    const SIDEWALK_Y = 0.18;
     const CURB_HEIGHT = 0.22;
     const CURB_WIDTH = 0.25;
-    const totalLen = SEGMENT_LENGTH * SEGMENT_COUNT * 2;
+    // Strip is exactly 2 cycles long, centered ahead of the player. As it
+    // scrolls back, we wrap by SIDEWALK_CYCLE so a fresh cycle is always
+    // ahead.
+    this.sidewalkCycle = SEGMENT_LENGTH * SEGMENT_COUNT;
+    const totalLen = this.sidewalkCycle * 2;
+    this.sidewalkGroup = new THREE.Group();
+    scene.add(this.sidewalkGroup);
     const groundDef = getGroundMaterial(initialTheme.id);
     this.canalMat = new THREE.MeshStandardMaterial({
       color: groundDef.tint,
@@ -246,7 +267,7 @@ export class World {
       -((SEGMENT_COUNT - 1) * SEGMENT_LENGTH) / 2
     );
     this.canalL.receiveShadow = true;
-    scene.add(this.canalL);
+    this.sidewalkGroup.add(this.canalL);
     this.canalR = new THREE.Mesh(sidewalkGeo, this.canalMat);
     this.canalR.rotation.x = -Math.PI / 2;
     this.canalR.position.set(
@@ -255,11 +276,9 @@ export class World {
       this.canalL.position.z
     );
     this.canalR.receiveShadow = true;
-    scene.add(this.canalR);
+    this.sidewalkGroup.add(this.canalR);
 
-    // CURB — visible darker concrete edge between road and sidewalk. Gives
-    // the "3D sidewalk under the buildings" feel Oscar asked for instead
-    // of a flat colored stripe.
+    // CURB — visible darker concrete edge between road and sidewalk.
     const sidewalkCurbMat = new THREE.MeshStandardMaterial({
       color: 0x4a4a52,
       roughness: 0.95,
@@ -273,7 +292,7 @@ export class World {
     );
     curbL.castShadow = true;
     curbL.receiveShadow = true;
-    scene.add(curbL);
+    this.sidewalkGroup.add(curbL);
     const curbR = new THREE.Mesh(curbGeo, sidewalkCurbMat);
     curbR.position.set(
       TRACK_WIDTH / 2 + CURB_WIDTH / 2,
@@ -282,7 +301,67 @@ export class World {
     );
     curbR.castShadow = true;
     curbR.receiveShadow = true;
-    scene.add(curbR);
+    this.sidewalkGroup.add(curbR);
+
+    // === 3D sidewalk detail: slab seams every 3m + manhole covers.
+    // Both rendered as InstancedMesh so the entire strip is ONE drawcall
+    // each instead of 320+ separate meshes. (Plain Mesh-per-seam was
+    // causing Oscar's "donmaya başladı" frame-rate drop.)
+    const seamMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2a30,
+      roughness: 0.95,
+    });
+    const SEAM_W = 0.06;
+    const SEAM_H = 0.04;
+    const seamGeo = new THREE.BoxGeometry(SIDEWALK_WIDTH - 0.4, SEAM_H, SEAM_W);
+    const stripStartZ = this.canalL.position.z - totalLen / 2;
+    const stripEndZ = this.canalL.position.z + totalLen / 2;
+    // Pre-count: every 3m × 2 sides
+    const seamCount = Math.floor((stripEndZ - stripStartZ) / 3) * 2;
+    const seamMesh = new THREE.InstancedMesh(seamGeo, seamMat, seamCount);
+    seamMesh.receiveShadow = true;
+    seamMesh.castShadow = false;
+    const seamMatrix = new THREE.Matrix4();
+    let seamI = 0;
+    for (let z = stripStartZ; z < stripEndZ && seamI < seamCount; z += 3) {
+      for (const sx of [-1, 1] as const) {
+        if (seamI >= seamCount) break;
+        seamMatrix.makeTranslation(
+          sx * (TRACK_WIDTH / 2 + CURB_WIDTH + SIDEWALK_WIDTH / 2),
+          SIDEWALK_Y + SEAM_H / 2,
+          z
+        );
+        seamMesh.setMatrixAt(seamI++, seamMatrix);
+      }
+    }
+    seamMesh.count = seamI;
+    seamMesh.instanceMatrix.needsUpdate = true;
+    this.sidewalkGroup.add(seamMesh);
+
+    const manholeMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1e,
+      roughness: 0.7,
+      metalness: 0.4,
+    });
+    const manholeGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.04, 16);
+    const manholeCount = Math.floor((stripEndZ - stripStartZ - 12) / 25) + 1;
+    const manholeMesh = new THREE.InstancedMesh(manholeGeo, manholeMat, manholeCount);
+    manholeMesh.receiveShadow = true;
+    manholeMesh.castShadow = false;
+    const manholeMatrix = new THREE.Matrix4();
+    let manholeI = 0;
+    for (let z = stripStartZ + 12; z < stripEndZ && manholeI < manholeCount; z += 25) {
+      const sx = manholeI % 2 === 0 ? -1 : 1;
+      manholeMatrix.makeTranslation(
+        sx * (TRACK_WIDTH / 2 + CURB_WIDTH + SIDEWALK_WIDTH * 0.55),
+        SIDEWALK_Y + 0.02,
+        z
+      );
+      manholeMesh.setMatrixAt(manholeI++, manholeMatrix);
+    }
+    manholeMesh.count = manholeI;
+    manholeMesh.instanceMatrix.needsUpdate = true;
+    this.sidewalkGroup.add(manholeMesh);
 
     // Buildings — allocate pool, seed with theme colors
     for (let i = 0; i < BUILDING_COUNT; i++) {
@@ -419,10 +498,15 @@ export class World {
       }
     });
     const baseZ = -slot * PROP_SPACING - Math.random() * 3;
-    // Props sit on the canal's far bank (just past the 5.5m water strip).
-    // Canal edge ≈ TRACK_WIDTH/2 + CANAL_WIDTH = 3.5 + 5.5 = 9m.
+    // Props sit on the SIDEWALK strip between the front-row buildings
+    // (inner edge ~5.5m) and the mid-row buildings (inner edge ~8.5m),
+    // so they don't end up clipped INSIDE building meshes (Oscar:
+    // "palmiyeleri evin içine sokmuşsun, düzgün yerlere koy").
+    // Sidewalk outer edge sits at TRACK_WIDTH/2 + CURB + SIDEWALK_WIDTH
+    // = 3.5 + 0.25 + 4.5 = 8.25m, so x ∈ [6.6, 7.8] keeps props on the
+    // sidewalk and clear of both building rows.
     g.position.set(
-      side * (TRACK_WIDTH / 2 + 5.7 + Math.random() * 1.0),
+      side * (TRACK_WIDTH / 2 + 3.1 + Math.random() * 1.2),
       0,
       baseZ
     );
@@ -441,10 +525,14 @@ export class World {
   }
 
   private createBuilding(slot: number): Building {
-    // Pack 4 buildings at every z-position: L-front, R-front, L-back, R-back.
-    const slotMod = slot % 4;
-    const side = slotMod === 0 || slotMod === 2 ? -1 : 1;
-    const isFrontRow = slotMod < 2;
+    // Pack 6 buildings at every z-position across 3 layers:
+    //   slot%6 == 0 → L-front,  1 → R-front
+    //   slot%6 == 2 → L-mid,    3 → R-mid
+    //   slot%6 == 4 → L-back,   5 → R-back
+    const slotMod = slot % 6;
+    const side = slotMod % 2 === 0 ? -1 : 1;
+    const rowTier = Math.floor(slotMod / 2); // 0=front, 1=mid, 2=back
+    const isFrontRow = rowTier === 0;
     const tb = buildThemeBuilding(this.theme, slot);
     const g = tb.group;
     g.traverse((c) => {
@@ -454,20 +542,31 @@ export class World {
         m.receiveShadow = true;
       }
     });
-    // Half-step stagger for back row: front row at multiples of SPACING,
-    // back row offset by SPACING/2 so it sits BETWEEN front-row z-positions.
-    // This is brick-layout — guaranteed gap-fill behind the front wall.
-    const zStep = Math.floor(slot / 4) * BUILDING_SPACING;
-    const staggerOffset = isFrontRow ? 0 : BUILDING_SPACING * 0.5;
+    // Per-tier z-stagger so all 3 layers fall on different z values within
+    // a single BUILDING_SPACING band — "brick" pattern across all 3 rows
+    // for guaranteed gap-fill behind the front wall.
+    const zStep = Math.floor(slot / 6) * BUILDING_SPACING;
+    const staggerOffset =
+      rowTier === 0
+        ? 0
+        : rowTier === 1
+        ? BUILDING_SPACING * (1 / 3)
+        : BUILDING_SPACING * (2 / 3);
     const baseZ = -(zStep + staggerOffset) - Math.random() * 0.6;
     // Position so the building's ROAD-FACING EDGE lines up at a fixed
     // distance from road center — Subway-style "wall of buildings" right
     // at the curb, regardless of building width. Wide buildings push out
     // (away from road); narrow ones pull in. No more buildings spilling
     // into the road.
-    const innerEdge = isFrontRow
-      ? TRACK_WIDTH / 2 + 0.5 + Math.random() * 0.3   // 4.0–4.3m from center
-      : TRACK_WIDTH / 2 + 4.0 + Math.random() * 1.5;  // 7.5–9.0m from center
+    //   Front row sits at the curb,
+    //   Mid row sits ~5–6m further from road,
+    //   Back row sits ~9–11m further from road.
+    const innerEdge =
+      rowTier === 0
+        ? TRACK_WIDTH / 2 + 0.5 + Math.random() * 0.3   // 4.0–4.3m from center
+        : rowTier === 1
+        ? TRACK_WIDTH / 2 + 5.0 + Math.random() * 1.2   // 8.5–9.7m from center
+        : TRACK_WIDTH / 2 + 9.5 + Math.random() * 1.8;  // 13–14.8m from center
     // Apply random rotation BEFORE measuring so bbox reflects rotated width
     g.rotation.y = (Math.random() - 0.5) * 0.4;
     g.updateMatrixWorld(true);
@@ -489,7 +588,11 @@ export class World {
     // recomputed from the GLB's own width so the road-facing edge lines
     // up at `entry.innerEdge` regardless of how wide the GLB is — no more
     // buildings spilling into the road.
-    const modelName = pickBuildingModel(this.theme.id, slot, isFrontRow);
+    const modelName = pickBuildingModel(
+      this.theme.id,
+      slot,
+      rowTier as 0 | 1 | 2
+    );
     if (modelName) {
       loadBuildingModel(modelName).then((glb) => {
         if (!glb) return;
@@ -556,7 +659,42 @@ export class World {
     this.canalMat.map = groundDef.map;
     this.canalMat.roughness = groundDef.roughness;
     this.canalMat.needsUpdate = true;
-    // Buildings + props handled lazily in scroll() via themeId mismatch.
+    // SMOOTH theme transition (Oscar: "uzaktan sanki gelir gibi olacak …
+    // bir anda değiştiriyorsun, öyle yapma"):
+    //  - Buildings ALREADY visible (z > player z - 60) keep their old-theme
+    //    look. They scroll past naturally and get recycled at the back of
+    //    the spawn ring.
+    //  - Buildings far ahead (z <= player z - 60) get rebuilt RIGHT NOW
+    //    with the new theme — so the country you're entering is visible
+    //    in the distance approaching.
+    //  - Props/flags follow the same horizon split.
+    //
+    //  The earlier hard "1-2 sn eski binalar gözüküyor" complaint was
+    //  caused by the URL theme not being parsed at init() (now fixed in
+    //  Game.ts), NOT by the cycle behavior — so we can return to the
+    //  natural fade now.
+    const HORIZON = -60; // anything farther than this from the camera = swap now
+    for (let i = 0; i < this.buildings.length; i++) {
+      const old = this.buildings[i];
+      if (old.themeId === theme.id) continue;
+      if (old.group.position.z >= HORIZON) continue; // visible — let it scroll past
+      const oldZ = old.group.position.z;
+      this.scene.remove(old.group);
+      const fresh = this.createBuilding(old.slot);
+      fresh.group.position.z = oldZ;
+      this.buildings[i] = fresh;
+    }
+    for (let i = 0; i < this.props.length; i++) {
+      const old = this.props[i];
+      if (old.themeId === theme.id) continue;
+      if (old.slot < 0) continue; // flag pair — leave it (will cull when off-screen)
+      if (old.group.position.z >= HORIZON) continue;
+      const oldZ = old.group.position.z;
+      this.scene.remove(old.group);
+      const fresh = this.createProp(old.slot);
+      fresh.group.position.z = oldZ;
+      this.props[i] = fresh;
+    }
   }
 
   /** Hard reset of buildings + props (used on game restart, not theme change). */
@@ -582,16 +720,44 @@ export class World {
     }
   }
 
+  /** Spawn a pair of country flagpoles at the start of a country segment.
+   *  Two big flags facing the road from each side, ~60-90m ahead — the
+   *  player runs through them like a "welcome to {country}" gate. */
+  spawnFlagPair(theme: Theme, baseZ: number) {
+    const themeId = theme.id;
+    for (const side of [-1, 1] as const) {
+      const placeholder = buildFlagPole(themeId);
+      placeholder.position.set(side * 6.0, 0, baseZ + (side > 0 ? -3 : 0));
+      // Flag faces road
+      placeholder.rotation.y = side > 0 ? Math.PI : 0;
+      this.scene.add(placeholder);
+      const entry: PropEntry = {
+        group: placeholder,
+        baseZ: baseZ,
+        slot: -1,
+        side,
+        themeId,
+      };
+      this.props.push(entry);
+      // Lazy-swap to GLB if available
+      loadFlagModel(themeId).then((glb) => {
+        if (!glb) return;
+        if (!this.props.includes(entry)) return;
+        while (placeholder.children.length > 0) {
+          placeholder.remove(placeholder.children[0]);
+        }
+        placeholder.add(glb);
+      });
+    }
+  }
+
   /** Spawn a landmark at given Z, positioned on random side. */
   spawnLandmark(theme: Theme, z: number, side: number = Math.random() < 0.5 ? -1 : 1) {
     const g = buildLandmark(theme.landmark);
-    // Place far from track on given side
     const dist = 28 + Math.random() * 8;
     g.position.set(side * dist, 0, z);
     g.rotation.y = side > 0 ? -0.3 : 0.3;
-    // Scale so it's prominent but not overwhelming
-    const s = 1.0;
-    g.scale.setScalar(s);
+    g.scale.setScalar(1.0);
     g.traverse((c) => {
       if ((c as THREE.Mesh).isMesh) {
         c.castShadow = true;
@@ -599,7 +765,23 @@ export class World {
       }
     });
     this.scene.add(g);
-    this.landmarks.push({ group: g, z, side });
+    const entry = { group: g, z, side };
+    this.landmarks.push(entry);
+
+    // Lazy-swap to Meshy GLB. Primitive shows immediately, GLB replaces
+    // when ready. Falls through silently on 404 / load fail (keeps primitive).
+    const themeId = theme.id;
+    loadLandmarkModel(themeId, theme.landmark).then((glb) => {
+      if (!glb) return;
+      if (!this.landmarks.includes(entry)) return;
+      const oldPos = entry.group.position.clone();
+      const oldRot = entry.group.rotation.clone();
+      this.scene.remove(entry.group);
+      glb.position.copy(oldPos);
+      glb.rotation.copy(oldRot);
+      this.scene.add(glb);
+      entry.group = glb;
+    });
   }
 
   private buildToken(): THREE.Group {
@@ -654,19 +836,29 @@ export class World {
 
   scroll(dz: number, playerZ: number) {
     this.spawnedZ += dz;
-    // (Canal water animation removed — distracting during gameplay. Water is
-    // now static; the ripple normal map still gives specular highlights but
-    // no scrolling flow effect.)
+    // Road segments scroll back as the player runs forward.
     for (const s of this.segments) {
       s.position.z += dz;
       if (s.position.z - playerZ > SEGMENT_LENGTH) {
         s.position.z -= SEGMENT_COUNT * SEGMENT_LENGTH;
       }
     }
-    // Buildings: 4 per z-position (L-front, R-front, L-back, R-back), so each
-    // ROW has BUILDING_COUNT/4 buildings. The cycle distance must wrap around
-    // the row length, not the total slot count.
-    const buildingCycleDist = (BUILDING_COUNT / 4) * BUILDING_SPACING;
+    // Sidewalk + curbs + slab seams + manholes ride the same scroll so
+    // they appear to move backward at the same rate as the road.
+    // Wrap by sidewalkCycle (= one segment row) so the kaldırım is
+    // always present in front of and behind the player.
+    if (this.sidewalkGroup) {
+      this.sidewalkGroup.position.z += dz;
+      if (this.sidewalkGroup.position.z > this.sidewalkCycle) {
+        this.sidewalkGroup.position.z -= this.sidewalkCycle;
+      } else if (this.sidewalkGroup.position.z < -this.sidewalkCycle) {
+        this.sidewalkGroup.position.z += this.sidewalkCycle;
+      }
+    }
+    // Buildings: 6 per z-position (L+R × 3 layers: front/mid/back), so each
+    // ROW has BUILDING_COUNT/6 buildings. Cycle distance wraps the row
+    // length, not the total slot count.
+    const buildingCycleDist = (BUILDING_COUNT / 6) * BUILDING_SPACING;
     for (let i = 0; i < this.buildings.length; i++) {
       const b = this.buildings[i];
       b.group.position.z += dz;
@@ -688,10 +880,19 @@ export class World {
     // entries spaced 2*PROP_SPACING apart. Total row length = PROP_COUNT *
     // PROP_SPACING — that's the cycle wrap distance.
     const propCycleDist = PROP_COUNT * PROP_SPACING;
-    for (let i = 0; i < this.props.length; i++) {
+    for (let i = this.props.length - 1; i >= 0; i--) {
       const p = this.props[i];
       p.group.position.z += dz;
       if (p.group.position.z - playerZ > 20) {
+        // Welcome-gate flag pair (slot < 0) is one-shot — destroy when it
+        // scrolls past the player instead of recycling it (createProp(-1)
+        // would emit a broken prop). Prevents the prop array from leaking
+        // a couple of extra entries every theme change.
+        if (p.slot < 0) {
+          this.scene.remove(p.group);
+          this.props.splice(i, 1);
+          continue;
+        }
         const cycledZ = p.group.position.z - propCycleDist;
         if (p.themeId !== this.theme.id) {
           this.scene.remove(p.group);
