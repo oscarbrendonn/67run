@@ -179,6 +179,29 @@ export class World {
       emissive: initialTheme.neonA,
       emissiveIntensity: 0.25,
     });
+    // Road markings — built as 3D meshes per segment so they scroll with
+    // the road and look like real painted lane lines instead of being
+    // burned into the asphalt texture (which tiled every 5m and read as
+    // "çisili" repetition that Oscar called out).
+    const whiteLineMat = new THREE.MeshStandardMaterial({
+      color: 0xfafafa,
+      roughness: 0.6,
+      emissive: 0x222222,
+      emissiveIntensity: 0.05,
+    });
+    const yellowDashMat = new THREE.MeshStandardMaterial({
+      color: 0xffd257,
+      roughness: 0.55,
+      emissive: 0xffd257,
+      emissiveIntensity: 0.18,
+    });
+    const studMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.3,
+      metalness: 0.7,
+      emissive: 0xfff5cc,
+      emissiveIntensity: 0.4,
+    });
     for (let i = 0; i < SEGMENT_COUNT; i++) {
       const seg = new THREE.Group();
       const plane = new THREE.Mesh(
@@ -188,22 +211,46 @@ export class World {
       plane.rotation.x = -Math.PI / 2;
       plane.receiveShadow = true;
       seg.add(plane);
-      // (Per-segment curbs removed — replaced by single global sidewalk
-      // curb mesh below. Two overlapping curbs were causing the z-fight
-      // flicker at the road edge.)
-      // Lane dashes — only used when AI road texture isn't loaded (theme.id === ?)
-      // AI textures have their own painted lane markings, so we hide these once loaded.
+
+      // Solid white edge lines — hard road border (left + right)
+      for (const sx of [-1, 1] as const) {
+        const edge = new THREE.Mesh(
+          new THREE.BoxGeometry(0.18, 0.05, SEGMENT_LENGTH),
+          whiteLineMat
+        );
+        edge.position.set(sx * (TRACK_WIDTH / 2 - 0.15), 0.025, 0);
+        edge.receiveShadow = true;
+        seg.add(edge);
+      }
+
+      // Dashed yellow lane dividers — between the 3 lanes (at x = ±TRACK_WIDTH/6)
       const dashGroup = new THREE.Group();
       dashGroup.name = "lane-dashes";
       for (const x of [-TRACK_WIDTH / 6, TRACK_WIDTH / 6]) {
-        for (let s = -SEGMENT_LENGTH / 2 + 1; s < SEGMENT_LENGTH / 2; s += 3.5) {
-          const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 1.6), this.stripeMat);
-          dash.rotation.x = -Math.PI / 2;
-          dash.position.set(x, 0.02, s);
+        for (let s = -SEGMENT_LENGTH / 2 + 1.2; s < SEGMENT_LENGTH / 2; s += 3.5) {
+          const dash = new THREE.Mesh(
+            new THREE.BoxGeometry(0.16, 0.04, 1.6),
+            yellowDashMat
+          );
+          dash.position.set(x, 0.022, s);
           dashGroup.add(dash);
         }
       }
       seg.add(dashGroup);
+
+      // Reflective road studs (cat's eyes) — small white-emissive cylinders
+      // every 4m on each lane divider. Adds 3D pop the player can read at speed.
+      for (const x of [-TRACK_WIDTH / 6, TRACK_WIDTH / 6]) {
+        for (let s = -SEGMENT_LENGTH / 2 + 3; s < SEGMENT_LENGTH / 2; s += 4) {
+          const stud = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.07, 0.04, 8),
+            studMat
+          );
+          stud.position.set(x, 0.045, s);
+          dashGroup.add(stud);
+        }
+      }
+
       seg.position.z = -i * SEGMENT_LENGTH;
       this.ground.add(seg);
       this.segments.push(seg);

@@ -11,73 +11,49 @@ function getOrMake(key: string, build: () => THREE.Texture): THREE.Texture {
   return tex;
 }
 
-/** Multi-lane asphalt with cracks, patches, tire streaks, and puddles. */
+/** Clean cartoon-style asphalt — Oscar: "yollar çisili gibi gösteriyor".
+ *  Cracks REMOVED, patches dialed way down, noise softened. The road
+ *  reads as a smooth Subway Surfers strip instead of a cracked highway.
+ *  Lane markings + 3D road studs are added separately in World.ts so the
+ *  texture itself stays clean. */
 export function makeAsphaltTexture(tint = 0x262833): THREE.Texture {
   return getOrMake(`asphalt-${tint}`, () => {
     const s = 1024;
     const c = document.createElement("canvas");
     c.width = c.height = s;
     const ctx = c.getContext("2d")!;
-    // Base fill
     const baseCol = new THREE.Color(tint);
     ctx.fillStyle = `rgb(${(baseCol.r * 255) | 0},${(baseCol.g * 255) | 0},${
       (baseCol.b * 255) | 0
     })`;
     ctx.fillRect(0, 0, s, s);
-    // Grain noise
+    // Soft grain only — no aggressive noise. ±12 instead of ±40.
     const id = ctx.getImageData(0, 0, s, s);
     const d = id.data;
     for (let i = 0; i < d.length; i += 4) {
-      const n = (Math.random() - 0.5) * 40;
+      const n = (Math.random() - 0.5) * 12;
       d[i] = Math.max(0, Math.min(255, d[i] + n));
       d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n));
       d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n));
     }
     ctx.putImageData(id, 0, 0);
-    // Darker patches
-    for (let i = 0; i < 60; i++) {
-      const r = 40 + Math.random() * 200;
+    // Few large soft patches — gives slight tone variation without
+    // looking dirty/scratched.
+    for (let i = 0; i < 12; i++) {
+      const r = 200 + Math.random() * 200;
       const x = Math.random() * s;
       const y = Math.random() * s;
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, "rgba(0,0,0,0.32)");
+      g.addColorStop(0, "rgba(0,0,0,0.12)");
       g.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = g;
       ctx.fillRect(x - r, y - r, r * 2, r * 2);
     }
-    // Lighter patches
-    for (let i = 0; i < 20; i++) {
-      const r = 80 + Math.random() * 160;
-      const x = Math.random() * s;
-      const y = Math.random() * s;
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, "rgba(255,255,255,0.1)");
-      g.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    }
-    // Cracks
-    ctx.strokeStyle = "rgba(0,0,0,0.45)";
-    for (let i = 0; i < 16; i++) {
-      ctx.lineWidth = Math.random() * 1.6 + 0.5;
-      const x = Math.random() * s;
-      const y = Math.random() * s;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      let cx = x,
-        cy = y;
-      const segs = 4 + Math.floor(Math.random() * 6);
-      for (let k = 0; k < segs; k++) {
-        cx += (Math.random() - 0.5) * 70;
-        cy += (Math.random() - 0.5) * 70;
-        ctx.lineTo(cx, cy);
-      }
-      ctx.stroke();
-    }
+    // Cracks REMOVED — they were the "çisili" stripes Oscar called out.
 
     const tex = new THREE.CanvasTexture(c);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.anisotropy = 8;
+    tex.anisotropy = 16;
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   });
