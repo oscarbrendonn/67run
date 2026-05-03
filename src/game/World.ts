@@ -166,7 +166,7 @@ export class World {
     this.ground = new THREE.Group();
     scene.add(this.ground);
 
-    const asphaltTex = makeAsphaltTexture(initialTheme.ground);
+    const asphaltTex = makeAsphaltTexture(initialTheme.ground, initialTheme.id);
     asphaltTex.repeat.set(2, 8);
     this.groundMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
@@ -179,21 +179,19 @@ export class World {
       emissive: initialTheme.neonA,
       emissiveIntensity: 0.25,
     });
-    // Road markings — built as 3D meshes per segment so they scroll with
-    // the road and look like real painted lane lines instead of being
-    // burned into the asphalt texture (which tiled every 5m and read as
-    // "çisili" repetition that Oscar called out).
-    const whiteLineMat = new THREE.MeshStandardMaterial({
-      color: 0xfafafa,
-      roughness: 0.6,
-      emissive: 0x222222,
-      emissiveIntensity: 0.05,
+    // Road markings — 3D meshes per segment.
+    //   Edge lines = DARK (Oscar: "kenarları beyaz yapma; siyah olsun")
+    //   Lane dashes = WHITE (Oscar: "sadece şeritler beyaz olsun")
+    //   Cat's eyes = white emissive (small 3D pop)
+    const edgeLineMat = new THREE.MeshStandardMaterial({
+      color: 0x14141a,
+      roughness: 0.85,
     });
-    const yellowDashMat = new THREE.MeshStandardMaterial({
-      color: 0xffd257,
-      roughness: 0.55,
-      emissive: 0xffd257,
-      emissiveIntensity: 0.18,
+    const laneDashMat = new THREE.MeshStandardMaterial({
+      color: 0xf2f2f2,
+      roughness: 0.6,
+      emissive: 0x111111,
+      emissiveIntensity: 0.08,
     });
     const studMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
@@ -212,25 +210,26 @@ export class World {
       plane.receiveShadow = true;
       seg.add(plane);
 
-      // Solid white edge lines — hard road border (left + right)
+      // Dark edge lines — hard road border (left + right). 3D bars,
+      // raised slightly above the road plane.
       for (const sx of [-1, 1] as const) {
         const edge = new THREE.Mesh(
-          new THREE.BoxGeometry(0.18, 0.05, SEGMENT_LENGTH),
-          whiteLineMat
+          new THREE.BoxGeometry(0.22, 0.05, SEGMENT_LENGTH),
+          edgeLineMat
         );
         edge.position.set(sx * (TRACK_WIDTH / 2 - 0.15), 0.025, 0);
         edge.receiveShadow = true;
         seg.add(edge);
       }
 
-      // Dashed yellow lane dividers — between the 3 lanes (at x = ±TRACK_WIDTH/6)
+      // Dashed WHITE lane dividers — between the 3 lanes (at x = ±TRACK_WIDTH/6)
       const dashGroup = new THREE.Group();
       dashGroup.name = "lane-dashes";
       for (const x of [-TRACK_WIDTH / 6, TRACK_WIDTH / 6]) {
         for (let s = -SEGMENT_LENGTH / 2 + 1.2; s < SEGMENT_LENGTH / 2; s += 3.5) {
           const dash = new THREE.Mesh(
             new THREE.BoxGeometry(0.16, 0.04, 1.6),
-            yellowDashMat
+            laneDashMat
           );
           dash.position.set(x, 0.022, s);
           dashGroup.add(dash);
@@ -458,54 +457,26 @@ export class World {
   }
 
   private applyRoadTexture(theme: Theme) {
-    const ROAD_TINT: Record<string, number> = {
-      usa: 0xc8c8c8,
-      brazil: 0x707070,
-      france: 0x808080,
-      japan: 0x4a4a4a,   // very dark — Tokyo neon was too bright
-      turkey: 0x909090,
-      uk: 0xa8a8a8,
-      russia: 0x9a9a9a,
-      uae: 0x808080,
-      egypt: 0xc09060,   // sandy beige
-    };
-    const tint = ROAD_TINT[theme.id] ?? 0xa0a0a0;
+    // Per-theme procedural road texture — Italy=cobblestone, Egypt=sand
+    // drift, UAE/Australia=concrete slabs, Japan/China=wet sheen, etc.
+    // Cached by themeId so theme switches are instant. Lane dash 3D
+    // markings stay on top regardless of which texture is underneath.
     const cached = this.roadTexCache.get(theme.id);
     if (cached) {
       this.groundMat.map = cached;
-      this.groundMat.color.setHex(tint);
+      this.groundMat.color.setHex(0xffffff);
       this.groundMat.needsUpdate = true;
-      this.setLaneDashesVisible(false);
+      this.setLaneDashesVisible(true);
       return;
     }
-    const themeRoadUrl = `/textures/road_${theme.id}.png`;
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      themeRoadUrl,
-      (tex) => {
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(2, 8);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = 8;
-        this.roadTexCache.set(theme.id, tex);
-        if (this.theme.id === theme.id) {
-          this.groundMat.map = tex;
-          this.groundMat.color.setHex(tint);
-          this.groundMat.roughness = 0.85;
-          this.groundMat.needsUpdate = true;
-          this.setLaneDashesVisible(false);
-        }
-      },
-      undefined,
-      () => {
-        const asphaltTex = makeAsphaltTexture(theme.ground);
-        asphaltTex.repeat.set(2, 8);
-        this.groundMat.map = asphaltTex;
-        this.groundMat.color.setHex(0xffffff);
-        this.groundMat.needsUpdate = true;
-        this.setLaneDashesVisible(true);
-      }
-    );
+    const tex = makeAsphaltTexture(theme.ground, theme.id);
+    tex.repeat.set(2, 8);
+    this.roadTexCache.set(theme.id, tex);
+    this.groundMat.map = tex;
+    this.groundMat.color.setHex(0xffffff);
+    this.groundMat.roughness = 0.85;
+    this.groundMat.needsUpdate = true;
+    this.setLaneDashesVisible(true);
   }
 
   private setLaneDashesVisible(visible: boolean) {
@@ -516,21 +487,22 @@ export class World {
   }
 
   /**
-   * Preload all 8 theme road textures + obstacles for next theme.
-   * Call once after first theme so transitions are smooth.
+   * Pre-build all 13 theme road textures (procedural canvas, instant —
+   * no HTTP). Stored in roadTexCache so theme switches don't even pause.
    */
   preloadAllRoads() {
-    const themes = ["usa", "brazil", "france", "japan", "turkey", "uk", "russia", "uae", "egypt"];
-    const loader = new THREE.TextureLoader();
-    for (const id of themes) {
+    const themes: Array<[string, number]> = [
+      ["usa", 0x3a3e4a], ["brazil", 0x4a3a32], ["france", 0x4a4640],
+      ["japan", 0x1a1a2a], ["turkey", 0x3a2e28], ["uk", 0x383a46],
+      ["russia", 0x2a2e3a], ["uae", 0x6a5038], ["egypt", 0x7a5a36],
+      ["italy", 0x6a5848], ["australia", 0x9a7a52],
+      ["china", 0x2a1a1a], ["korea", 0x383a44],
+    ];
+    for (const [id, tint] of themes) {
       if (this.roadTexCache.has(id)) continue;
-      loader.load(`/textures/road_${id}.png`, (tex) => {
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(2, 8);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = 8;
-        this.roadTexCache.set(id, tex);
-      });
+      const tex = makeAsphaltTexture(tint, id);
+      tex.repeat.set(2, 8);
+      this.roadTexCache.set(id, tex);
     }
   }
 
