@@ -8,6 +8,21 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <!-- Boot loader: shown until every initial asset (Mav GLB + initial
+         theme buildings/obstacles/landmark) is in cache. main.ts hides
+         this only after game.assetsReady resolves. Player never sees the
+         primitive Mav rig flash, never sees a half-loaded scene. -->
+    <div id="boot-loader">
+      <div class="boot-card">
+        <div class="boot-logo">67</div>
+        <div class="boot-title">RUNNER</div>
+        <div class="boot-bar">
+          <div class="boot-bar-fill" id="boot-bar-fill"></div>
+        </div>
+        <div class="boot-status" id="boot-status">Yükleniyor…</div>
+      </div>
+    </div>
+
     <div id="app">
       <canvas id="game"></canvas>
 

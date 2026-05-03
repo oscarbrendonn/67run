@@ -133,6 +133,69 @@ canvas#game {
 }
 
 /* ---------------------------- Overlays ---------------------------- */
+/* Boot loader — shown until every initial GLB is cached (Mav + initial
+   theme buildings/obstacles/landmark). Removed by main.ts once
+   game.assetsReady resolves. Higher z-index than every other overlay so
+   it covers the title screen too. */
+#boot-loader {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, #0a0e1c 0%, #1a1228 60%, #2a1828 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: opacity 0.35s ease-out;
+}
+#boot-loader.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.boot-card {
+  text-align: center;
+  color: #fff;
+  font-family: -apple-system, "Inter", system-ui, sans-serif;
+  user-select: none;
+}
+.boot-logo {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: 96px;
+  font-weight: 900;
+  background: linear-gradient(180deg, #ff8a3a 0%, #ff3a6e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -4px;
+  line-height: 1;
+}
+.boot-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin: 8px 0 32px;
+  color: #d8d8e0;
+}
+.boot-bar {
+  width: 280px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0 auto 14px;
+}
+.boot-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff8a3a 0%, #ff3a6e 100%);
+  border-radius: 3px;
+  transition: width 0.25s ease-out;
+}
+.boot-status {
+  font-size: 13px;
+  color: #a8a8b8;
+  letter-spacing: 1.5px;
+}
+
 .overlay {
   position: absolute;
   inset: 0;
