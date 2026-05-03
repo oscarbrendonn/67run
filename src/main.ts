@@ -19,8 +19,8 @@ const bootInterval = window.setInterval(() => {
   // Asymptote at 92% — never finishes until assetsReady triggers it
   bootProgress = Math.min(92, 92 * (1 - Math.exp(-elapsed / 4)));
   bootBar.style.width = `${bootProgress.toFixed(1)}%`;
-  if (elapsed > 8) bootStatus.textContent = "Hazırlanıyor…";
-  if (elapsed > 16) bootStatus.textContent = "Çok kaldı…";
+  if (elapsed > 8) bootStatus.textContent = "Almost ready…";
+  if (elapsed > 16) bootStatus.textContent = "Hang tight…";
 }, 80);
 
 (async () => {
@@ -32,7 +32,7 @@ const bootInterval = window.setInterval(() => {
   // Snap to 100% then fade out.
   window.clearInterval(bootInterval);
   bootBar.style.width = "100%";
-  bootStatus.textContent = "Hazır!";
+  bootStatus.textContent = "Ready!";
   await new Promise((r) => setTimeout(r, 250));
   bootLoader.classList.add("hidden");
   setTimeout(() => bootLoader.remove(), 500);
