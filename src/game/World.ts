@@ -522,13 +522,17 @@ export class World {
         m.receiveShadow = true;
       }
     });
-    const baseZ = -slot * PROP_SPACING - Math.random() * 3;
-    // Props sit on the INNER half of the sidewalk — close to the road,
-    // in front of every building row. Front buildings now start at 5.5m
-    // (was 4m) so the prop band 4.0–5.0m never overlaps a building mesh.
-    // Oscar: "ağaçlar evin içinde çıkıyor" — fixed.
+    // Heavy Z jitter (±2.5m) so props don't form a perfect dotted line
+    // along the road — Oscar: "yolun köşelerine eklemişsin, doğal değil".
+    // With this, every prop hits a different z-bucket; some line up with
+    // building gaps, some sit in the middle of a building span — natural mix.
+    const baseZ = -slot * PROP_SPACING - Math.random() * 5;
+    // Props sit on the INNER edge of the sidewalk — narrow band tight to
+    // the curb. Front buildings start at 4.6m so this band (3.6–4.1m)
+    // sits in the 0.5m strip between curb and building wall — exactly
+    // where street trees / lampposts / hydrants live in real cities.
     g.position.set(
-      side * (TRACK_WIDTH / 2 + 0.5 + Math.random() * 1.0),
+      side * (TRACK_WIDTH / 2 + 0.1 + Math.random() * 0.5),
       0,
       baseZ
     );
@@ -595,15 +599,16 @@ export class World {
     //   Front row sits at the curb,
     //   Mid row sits ~5–6m further from road,
     //   Back row sits ~9–11m further from road.
-    // Front row pushed back to 5.5m (was 4.0m) to leave a 4–5m strip on
-    // the sidewalk for street props (lamp / tree / palm / lantern).
-    // Mid + back unchanged.
+    // Front row pulled BACK toward the road (4.6m, was 5.5m) so the
+    // "wall of buildings" hugs the sidewalk again — Oscar: "binaların
+    // düzenini bozmuşsun ağaçları eklediğin zaman". Props fit in the
+    // narrow 0.5m strip 3.6–4.1m, between curb and building wall.
     const innerEdge =
       rowTier === 0
-        ? TRACK_WIDTH / 2 + 2.0 + Math.random() * 0.3   // 5.5–5.8m from center
+        ? TRACK_WIDTH / 2 + 1.1 + Math.random() * 0.3   // 4.6–4.9m from center
         : rowTier === 1
-        ? TRACK_WIDTH / 2 + 5.0 + Math.random() * 1.2   // 8.5–9.7m from center
-        : TRACK_WIDTH / 2 + 9.5 + Math.random() * 1.8;  // 13–14.8m from center
+        ? TRACK_WIDTH / 2 + 4.5 + Math.random() * 1.2   // 8.0–9.2m from center
+        : TRACK_WIDTH / 2 + 9.0 + Math.random() * 1.8;  // 12.5–14.3m from center
     // Apply random rotation BEFORE measuring so bbox reflects rotated width
     g.rotation.y = (Math.random() - 0.5) * 0.4;
     g.updateMatrixWorld(true);

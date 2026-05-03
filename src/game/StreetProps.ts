@@ -158,79 +158,107 @@ function buildLamppost(theme: Theme): THREE.Group {
 }
 
 function buildTree(theme: Theme): THREE.Group {
-  // Real 3D tree with branch geometry — bark segments, 5 main branches
-  // each with 2-3 sub-twigs, every branch tip has its own foliage puff.
-  // ~30 meshes per tree; reads as actual tree volume at gameplay speed.
+  // BIG 3D shade tree — much taller (4.8m), thicker trunk, 8 main branches
+  // each with 2 sub-twigs + tip puffs, smooth subdivided foliage spheres.
+  // ~50 meshes total — reads unmistakably as a 3D tree, not a billboard.
   const g = new THREE.Group();
   const trunkColor = 0x4a3018;
   const branchColor = 0x5a3820;
-  const baseLeaf = theme.grass === 0x1a3a24 ? 0x2a7a3a : 0x3a8a4a;
+  // Per-theme leaf color — more saturated/tropical for warm climates,
+  // muted olive for desert, deep dark green for cold themes.
+  const baseLeaf =
+    theme.id === "russia" ? 0x244a30 :
+    theme.id === "uae" || theme.id === "egypt" ? 0x6a7a32 :
+    theme.id === "japan" ? 0x2a6a3a :
+    theme.id === "italy" ? 0x4a8a3a :
+    theme.id === "australia" ? 0x6a9a4a :
+    theme.id === "korea" ? 0x4a9a4a :
+    0x3a8a4a;
 
-  // Tapered trunk — 8 segments with slight side wobble
-  const trunkBands = 8;
-  const trunkH = 2.4;
+  // ROOTS — flared base hemisphere, makes tree look planted
+  const roots = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.55, 0.85, 0.4, 14),
+    mat(trunkColor, { rough: 0.95 })
+  );
+  roots.position.y = 0.2;
+  g.add(roots);
+  // 4 root buttresses sticking out from base
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    const buttress = new THREE.Mesh(
+      new THREE.BoxGeometry(0.25, 0.35, 0.7),
+      mat(trunkColor, { rough: 0.95 })
+    );
+    buttress.position.set(Math.cos(a) * 0.55, 0.18, Math.sin(a) * 0.55);
+    buttress.rotation.y = a;
+    g.add(buttress);
+  }
+
+  // Tapered trunk — 12 segments, organic side wobble
+  const trunkBands = 12;
+  const trunkH = 3.4;
   const segH = trunkH / trunkBands;
   for (let i = 0; i < trunkBands; i++) {
-    const r1 = 0.34 - i * 0.026;
-    const r2 = r1 - 0.02;
+    const r1 = 0.46 - i * 0.024;
+    const r2 = r1 - 0.018;
     const seg = new THREE.Mesh(
-      new THREE.CylinderGeometry(r2, r1, segH * 1.05, 10),
+      new THREE.CylinderGeometry(r2, r1, segH * 1.06, 12),
       mat(trunkColor + (i % 2 === 0 ? 0x0a0804 : 0), { rough: 0.92 })
     );
     seg.position.set(
-      Math.sin(i * 0.7) * 0.04,
-      i * segH + segH / 2,
-      Math.cos(i * 0.7) * 0.04
+      Math.sin(i * 0.55) * 0.05,
+      0.4 + i * segH + segH / 2,
+      Math.cos(i * 0.55) * 0.05
     );
     g.add(seg);
   }
 
-  // 5 main branches at varying angles around the top of the trunk
+  // 8 main branches at varying yaws around the top
   const branchSpecs: [number, number, number, number][] = [
     // [yawAngle, pitchTiltZ, length, thickness]
-    [0,           0.55,  1.3, 0.13],
-    [Math.PI*0.4, 0.50,  1.2, 0.12],
-    [Math.PI*0.8, 0.62,  1.3, 0.13],
-    [Math.PI*1.2, 0.45,  1.1, 0.11],
-    [Math.PI*1.6, 0.58,  1.25, 0.12],
+    [Math.PI * 0.0, 0.55, 1.6, 0.16],
+    [Math.PI * 0.25, 0.50, 1.5, 0.15],
+    [Math.PI * 0.5, 0.62, 1.55, 0.16],
+    [Math.PI * 0.75, 0.45, 1.45, 0.14],
+    [Math.PI * 1.0, 0.58, 1.6, 0.15],
+    [Math.PI * 1.25, 0.50, 1.4, 0.13],
+    [Math.PI * 1.5, 0.62, 1.55, 0.15],
+    [Math.PI * 1.75, 0.55, 1.5, 0.14],
   ];
   for (const [yaw, tilt, len, thick] of branchSpecs) {
-    // Branch
     const branch = new THREE.Mesh(
-      new THREE.CylinderGeometry(thick * 0.6, thick, len, 7),
+      new THREE.CylinderGeometry(thick * 0.55, thick, len, 8),
       mat(branchColor, { rough: 0.9 })
     );
     branch.rotation.order = "YZX";
     branch.rotation.y = yaw;
     branch.rotation.z = tilt;
-    // Position at top of trunk, lean outward
-    const baseY = trunkH;
+    const baseY = 0.4 + trunkH;
     const reachX = Math.cos(yaw) * Math.sin(tilt) * len * 0.5;
     const reachZ = Math.sin(yaw) * Math.sin(tilt) * len * 0.5;
     const upY = Math.cos(tilt) * len * 0.5;
     branch.position.set(reachX, baseY + upY, reachZ);
     g.add(branch);
 
-    // Branch-tip foliage puff
+    // Branch-tip foliage puff — bigger, smoother (subdivision 2)
     const tipX = Math.cos(yaw) * Math.sin(tilt) * len;
     const tipZ = Math.sin(yaw) * Math.sin(tilt) * len;
     const tipY = baseY + Math.cos(tilt) * len;
-    const r = 0.85 + Math.random() * 0.25;
-    const colorOffset = (Math.floor(Math.random() * 4) - 2) * 0x080808;
+    const r = 1.05 + Math.random() * 0.3;
+    const colorOffset = (Math.floor(Math.random() * 4) - 2) * 0x070707;
     const puff = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(r, 1),
+      new THREE.IcosahedronGeometry(r, 2), // subdiv 2 = 80 faces, smoother
       mat(baseLeaf + colorOffset, { rough: 0.85 })
     );
     puff.position.set(tipX, tipY, tipZ);
     g.add(puff);
 
-    // 2 sub-twigs per branch — small splayed offshoots with their own
-    // mini puff. Adds visible silhouette complexity.
+    // 2 sub-twigs with their own mini puff
     for (let s = 0; s < 2; s++) {
-      const twigYaw = yaw + (s === 0 ? 0.5 : -0.5);
-      const twigLen = 0.6;
+      const twigYaw = yaw + (s === 0 ? 0.45 : -0.45);
+      const twigLen = 0.7;
       const twig = new THREE.Mesh(
-        new THREE.CylinderGeometry(thick * 0.25, thick * 0.45, twigLen, 5),
+        new THREE.CylinderGeometry(thick * 0.3, thick * 0.5, twigLen, 6),
         mat(branchColor, { rough: 0.9 })
       );
       twig.rotation.y = twigYaw;
@@ -245,10 +273,9 @@ function buildTree(theme: Theme): THREE.Group {
       );
       g.add(twig);
 
-      // Tiny puff at twig tip
-      const twigR = 0.45 + Math.random() * 0.2;
+      const twigR = 0.6 + Math.random() * 0.25;
       const tinyPuff = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(twigR, 0),
+        new THREE.IcosahedronGeometry(twigR, 1),
         mat(baseLeaf - 0x081008, { rough: 0.85 })
       );
       tinyPuff.position.set(
@@ -260,25 +287,35 @@ function buildTree(theme: Theme): THREE.Group {
     }
   }
 
-  // Central crown puff — fills the gap between branch-tip puffs
+  // Central crown puff — fills middle volume between branch-tip puffs
   const crown = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.3, 1),
+    new THREE.IcosahedronGeometry(1.7, 2),
     mat(baseLeaf, { rough: 0.85 })
   );
-  crown.position.set(0, trunkH + 0.7, 0);
+  crown.position.set(0, 0.4 + trunkH + 0.9, 0);
   g.add(crown);
 
-  // Dark underside puff (visual ground shadow + canopy depth)
+  // Upper crown puff (top dome)
+  const upperCrown = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(1.2, 2),
+    mat(baseLeaf + 0x040804, { rough: 0.85 })
+  );
+  upperCrown.position.set(0, 0.4 + trunkH + 1.85, 0);
+  g.add(upperCrown);
+
+  // Dark underside puff — canopy shadow depth
   const underShadow = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.2, 0),
+    new THREE.IcosahedronGeometry(1.5, 1),
     mat(0x1a3a1a, { rough: 0.95 })
   );
-  underShadow.position.set(0, trunkH + 0.1, 0);
-  underShadow.scale.set(1.3, 0.45, 1.3);
+  underShadow.position.set(0, 0.4 + trunkH + 0.15, 0);
+  underShadow.scale.set(1.4, 0.4, 1.4);
   g.add(underShadow);
 
-  // Random rotation around vertical so each tree clone looks unique
+  // Random rotation around vertical so each tree clone is unique
   g.rotation.y = Math.random() * Math.PI * 2;
+  // Slight random tilt — natural growth lean (max ~6°)
+  g.rotation.z = (Math.random() - 0.5) * 0.1;
   return g;
 }
 
@@ -300,84 +337,148 @@ function buildPineTree(): THREE.Group {
 }
 
 function buildPalmTree(): THREE.Group {
-  // Tropikal palmiye — uzun kıvrık gövde + 11 yaprak (was 7) + hindistan
-  // cevizi salkımı. Daha büyük ve hava verici (Oscar: "Brezilya'nın kendi
-  // havasını vermesi lazım").
+  // BIG 3D palm — tall curved trunk + 14 fronds, each frond has 8 leaflet
+  // pinnae (real palm-leaf shape, not flat cones), coconut cluster + dropping
+  // dates. ~150 meshes total, reads as actual palm volume from any angle.
   const g = new THREE.Group();
-  const TRUNK_H = 7.0; // was 5.0
-  const segs = 6;
+  const TRUNK_H = 7.5;
+  const segs = 8; // more segments for smoother curve
   const segH = TRUNK_H / segs;
-  // Gövde — segmentlere bölüp her segmenti hafif farklı eğip üst üste
-  // koyarak doğal "kıvrık" tropikal palmiye silüeti
-  const lean = (Math.random() - 0.5) * 0.6; // overall lean direction
+  const lean = (Math.random() - 0.5) * 0.7;
   let yCursor = 0;
   let xCursor = 0;
+  // Trunk — chunky base tapering up
   for (let s = 0; s < segs; s++) {
-    const r1 = 0.36 - (s / segs) * 0.18; // taper
+    const r1 = 0.42 - (s / segs) * 0.22;
     const r2 = r1 - 0.025;
     const seg = new THREE.Mesh(
-      new THREE.CylinderGeometry(r2, r1, segH * 1.05, 10),
-      mat(0x6a4a2a, { rough: 0.85 })
+      new THREE.CylinderGeometry(r2, r1, segH * 1.06, 12),
+      mat(0x6a4a2a, { rough: 0.88 })
     );
-    // Her segment hafif daha eğik → kümülatif curve
-    const curve = lean * (s / segs) * 0.18;
+    const curve = lean * (s / segs) * 0.22;
     seg.rotation.z = curve;
     seg.position.set(xCursor, yCursor + segH / 2, 0);
     g.add(seg);
-    // Halka detay (palmiye bilezikleri)
+    // Diamond-pattern ring detail per segment (palm bark "scales")
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(r1 + 0.02, 0.04, 6, 14),
-      mat(0x4a3018, { rough: 0.95 })
+      new THREE.TorusGeometry(r1 + 0.025, 0.05, 6, 16),
+      mat(0x3a2010, { rough: 0.95 })
     );
     ring.rotation.x = Math.PI / 2;
     ring.position.set(xCursor + curve * segH * 0.5, yCursor + segH * 0.85, 0);
     g.add(ring);
+    // Extra horizontal scale stripes — real palm bark texture
+    if (s < segs - 1) {
+      const stripe = new THREE.Mesh(
+        new THREE.TorusGeometry(r1 + 0.015, 0.025, 5, 14),
+        mat(0x5a3818, { rough: 0.95 })
+      );
+      stripe.rotation.x = Math.PI / 2;
+      stripe.position.set(xCursor + curve * segH * 0.5, yCursor + segH * 0.4, 0);
+      g.add(stripe);
+    }
     yCursor += segH;
     xCursor += Math.sin(curve) * segH;
   }
   const topY = yCursor;
   const topX = xCursor;
-  // Yapraklar — 11 fronds, daha geniş ve uzun, alçaktan yukarı
-  // yelpaze gibi açılırlar
-  const FROND_COUNT = 11;
+
+  // Crown base — bulb where fronds attach
+  const crownBulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 12, 10),
+    mat(0x4a3018, { rough: 0.92 })
+  );
+  crownBulb.position.set(topX, topY + 0.05, 0);
+  g.add(crownBulb);
+
+  // Fronds — 14 of them, each with 8 leaflet pinnae for real palm-leaf 3D shape
+  const FROND_COUNT = 14;
   for (let i = 0; i < FROND_COUNT; i++) {
-    const ang = (i / FROND_COUNT) * Math.PI * 2 + Math.random() * 0.15;
-    const len = 2.6 + Math.random() * 0.8;
-    const frond = new THREE.Mesh(
-      new THREE.ConeGeometry(0.35, len, 5),
-      mat(0x3a7a3a, { rough: 0.7 })
+    const ang = (i / FROND_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
+    const len = 2.8 + Math.random() * 0.9;
+    const droop = 0.95 + Math.random() * 0.45;
+    const cAng = Math.cos(ang);
+    const sAng = Math.sin(ang);
+
+    // Center spine of the frond — thin curved cylinder
+    const spine = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.07, len, 6),
+      mat(0x3a5a28, { rough: 0.85 })
     );
-    // Yatay düzlemde yelpaze + hafif sarkan uçlar
-    const droop = 0.85 + Math.random() * 0.4;
-    frond.position.set(
-      topX + Math.cos(ang) * 1.05,
-      topY + 0.25 - droop * 0.15,
-      Math.sin(ang) * 1.05
+    spine.rotation.order = "YZX";
+    spine.rotation.y = ang;
+    spine.rotation.z = -droop * 0.5 + Math.PI / 2;
+    const spineBaseX = topX + cAng * 0.4;
+    const spineBaseZ = sAng * 0.4;
+    const spineMidY = topY - droop * 0.2;
+    spine.position.set(
+      spineBaseX + cAng * len * 0.4,
+      spineMidY,
+      spineBaseZ + sAng * len * 0.4
     );
-    frond.rotation.z = Math.cos(ang) * droop;
-    frond.rotation.x = Math.sin(ang) * -droop;
-    frond.rotation.y = ang;
-    g.add(frond);
-    // Yaprak ortasındaki nervure (orta damar) — koyu gölgesi için ince mesh
-    const vein = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.06, len * 0.8, 4),
-      mat(0x2a4a22, { rough: 0.95 })
+    g.add(spine);
+
+    // 8 leaflets along each side of the spine — staggered, alternating
+    const LEAFLETS = 8;
+    for (let l = 0; l < LEAFLETS; l++) {
+      const t = (l + 1) / (LEAFLETS + 1); // 0.11..0.89 along spine
+      // Position on spine
+      const sx = spineBaseX + cAng * len * t;
+      const sy = topY + 0.05 - droop * 0.18 * t * t * 4 - droop * 0.2; // sag arc
+      const sz = spineBaseZ + sAng * len * t;
+      // Each spine has 2 leaflets — left & right of spine
+      for (const side of [-1, 1]) {
+        // Leaflets get smaller toward tip
+        const leafLen = 0.55 + (1 - t) * 0.35;
+        const leafW = 0.09 - t * 0.04;
+        const leaf = new THREE.Mesh(
+          new THREE.ConeGeometry(leafW, leafLen, 4),
+          mat(0x3a8a3a + (l % 2 === 0 ? 0x081008 : 0), { rough: 0.7 })
+        );
+        // Leaflet tilts perpendicular to spine, splayed out + drooping at tip
+        leaf.rotation.order = "YZX";
+        leaf.rotation.y = ang;
+        // Splay angle: from spine outward
+        leaf.rotation.x = side * (1.0 + t * 0.4); // perpendicular splay
+        leaf.rotation.z = -droop * 0.4 - t * 0.25;
+        // Position offset perpendicular to spine
+        const perpX = -sAng * side * leafLen * 0.45;
+        const perpZ = cAng * side * leafLen * 0.45;
+        leaf.position.set(sx + perpX, sy - t * 0.15, sz + perpZ);
+        g.add(leaf);
+      }
+    }
+
+    // Tip leaflet — points along spine direction
+    const tipLeaf = new THREE.Mesh(
+      new THREE.ConeGeometry(0.06, 0.4, 4),
+      mat(0x2a7a2a, { rough: 0.7 })
     );
-    vein.position.copy(frond.position);
-    vein.rotation.copy(frond.rotation);
-    g.add(vein);
+    tipLeaf.rotation.y = ang;
+    tipLeaf.rotation.z = -droop * 0.6 + Math.PI / 2;
+    tipLeaf.position.set(
+      spineBaseX + cAng * len * 0.95,
+      topY + 0.05 - droop * 0.7,
+      spineBaseZ + sAng * len * 0.95
+    );
+    g.add(tipLeaf);
   }
-  // Hindistan cevizi salkımı — 5 koyu kahve top
-  for (let i = 0; i < 5; i++) {
+
+  // Coconut cluster — 7 brown coconuts hanging in a ring under fronds
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + Math.random() * 0.3;
+    const r = 0.4 + Math.random() * 0.18;
     const coco = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 8, 6),
+      new THREE.SphereGeometry(0.24, 10, 8),
       mat(0x3a2010, { rough: 0.6 })
     );
-    const a = Math.random() * Math.PI * 2;
-    const r = 0.32 + Math.random() * 0.15;
-    coco.position.set(topX + Math.cos(a) * r, topY - 0.35, Math.sin(a) * r);
+    coco.scale.y = 1.15;
+    coco.position.set(topX + Math.cos(a) * r, topY - 0.45, Math.sin(a) * r);
     g.add(coco);
   }
+
+  // Random Y rotation so palms don't all face same direction
+  g.rotation.y = Math.random() * Math.PI * 2;
   return g;
 }
 
