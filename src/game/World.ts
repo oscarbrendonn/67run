@@ -250,6 +250,12 @@ export class World {
         }
       }
 
+      // Per-theme 3D road detail — actual raised geometry on top of the
+      // texture so the surface reads as cobblestone / stone slab /
+      // concrete grid / wet asphalt instead of just a painted plane.
+      // InstancedMesh keeps all of this to a single drawcall per segment.
+      addRoadDetail3D(seg, initialTheme.id);
+
       seg.position.z = -i * SEGMENT_LENGTH;
       this.ground.add(seg);
       this.segments.push(seg);
@@ -663,6 +669,23 @@ export class World {
     this.theme = theme;
     // Apply CACHED road texture if available (no re-fetch lag)
     this.applyRoadTexture(theme);
+    // Rebuild per-segment 3D road detail (cobble / slabs / sand / etc.)
+    // for the new country. Each segment keeps a single "road-detail"
+    // group that we strip and recreate. InstancedMesh keeps this fast.
+    for (const seg of this.segments) {
+      const old = seg.getObjectByName("road-detail");
+      if (old) {
+        seg.remove(old);
+        old.traverse((c) => {
+          const im = c as THREE.InstancedMesh;
+          if (im.isInstancedMesh) {
+            im.geometry.dispose();
+            (im.material as THREE.Material).dispose?.();
+          }
+        });
+      }
+      addRoadDetail3D(seg, theme.id);
+    }
     // Preload theme obstacles + buildings IMMEDIATELY (not via requestIdle
     // — that callback never fires during 60fps gameplay, so GLBs were
     // never starting to download until the player was already deep into
@@ -1801,6 +1824,236 @@ export class World {
     }
     return passed;
   }
+}
+
+/** Per-theme 3D road detail: raised geometry on top of the asphalt
+ *  texture so each country's road literally has its own bumpy surface,
+ *  not just a recolored flat plane. Uses InstancedMesh — entire detail
+ *  pass for one segment is a single drawcall.
+ *
+ *  Italy / France / UK → cobblestone (small stone bricks)
+ *  Turkey              → stone slabs (larger irregular tiles)
+ *  Egypt               → ancient stones with sand bumps
+ *  UAE / Australia     → concrete slab seam ridges
+ *  Japan / China       → reflective wet patches (flat dark plates)
+ *  Russia              → snow patches
+ *  USA / Korea / Brazil / default → manhole + clean asphalt (subtle)
+ */
+function addRoadDetail3D(seg: THREE.Group, themeId: string): void {
+  // Track footprint inside one segment: ±TRACK_WIDTH/2 wide, ±SEGMENT_LENGTH/2 deep
+  const W = TRACK_WIDTH - 0.6; // leave room for edge lines
+  const L = SEGMENT_LENGTH;
+  const detailGroup = new THREE.Group();
+  detailGroup.name = "road-detail";
+
+  const stoneMat = (color: number, rough = 0.85) =>
+    new THREE.MeshStandardMaterial({ color, roughness: rough });
+
+  const place = (
+    geo: THREE.BufferGeometry,
+    mat: THREE.Material,
+    transforms: THREE.Matrix4[]
+  ) => {
+    if (transforms.length === 0) return;
+    const im = new THREE.InstancedMesh(geo, mat, transforms.length);
+    im.receiveShadow = true;
+    im.castShadow = false;
+    transforms.forEach((m, i) => im.setMatrixAt(i, m));
+    im.instanceMatrix.needsUpdate = true;
+    detailGroup.add(im);
+  };
+
+  if (themeId === "italy" || themeId === "france" || themeId === "uk") {
+    // Cobblestone — staggered grid of small raised stones
+    const sx = 0.55, sz = 0.55;
+    const cols = Math.floor(W / sx);
+    const rows = Math.floor(L / sz);
+    const geo = new THREE.BoxGeometry(sx * 0.86, 0.04, sz * 0.86);
+    const mat = stoneMat(0x383238, 0.9);
+    const ms: THREE.Matrix4[] = [];
+    for (let r = 0; r < rows; r++) {
+      const offset = r % 2 === 0 ? 0 : sx / 2;
+      for (let c = 0; c < cols; c++) {
+        const x = -W / 2 + c * sx + offset + sx / 2;
+        if (Math.abs(x) > W / 2 - 0.1) continue;
+        const z = -L / 2 + r * sz + sz / 2;
+        const m = new THREE.Matrix4();
+        m.compose(
+          new THREE.Vector3(x, 0.022 + Math.random() * 0.012, z),
+          new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(0, (Math.random() - 0.5) * 0.18, 0)
+          ),
+          new THREE.Vector3(1, 1, 1)
+        );
+        ms.push(m);
+      }
+    }
+    place(geo, mat, ms);
+  } else if (themeId === "turkey") {
+    // Larger stone slabs — irregular cut stones
+    const ms: THREE.Matrix4[] = [];
+    const geo = new THREE.BoxGeometry(1.0, 0.05, 1.0);
+    const mat = stoneMat(0x484036, 0.88);
+    let z = -L / 2;
+    while (z < L / 2) {
+      const rowH = 0.95 + Math.random() * 0.4;
+      let x = -W / 2 - Math.random() * 0.3;
+      while (x < W / 2) {
+        const w = 0.85 + Math.random() * 0.5;
+        const m = new THREE.Matrix4();
+        m.compose(
+          new THREE.Vector3(x + w / 2, 0.025, z + rowH / 2),
+          new THREE.Quaternion(),
+          new THREE.Vector3(w, 1, rowH * 0.95)
+        );
+        ms.push(m);
+        x += w;
+      }
+      z += rowH;
+    }
+    place(geo, mat, ms);
+  } else if (themeId === "egypt") {
+    // Sand bumps + scattered ancient stones
+    const stoneGeo = new THREE.BoxGeometry(0.7, 0.05, 0.5);
+    const stoneM: THREE.Matrix4[] = [];
+    for (let i = 0; i < 20; i++) {
+      const m = new THREE.Matrix4();
+      m.compose(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * W * 0.85,
+          0.025,
+          (Math.random() - 0.5) * L * 0.95
+        ),
+        new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, Math.random() * Math.PI, 0)
+        ),
+        new THREE.Vector3(0.7 + Math.random() * 0.5, 1, 0.5 + Math.random() * 0.4)
+      );
+      stoneM.push(m);
+    }
+    place(stoneGeo, stoneMat(0x8a6a3a, 0.95), stoneM);
+    // Sand bumps — flat tan disks
+    const sandGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.04, 12);
+    const sandM: THREE.Matrix4[] = [];
+    for (let i = 0; i < 14; i++) {
+      const m = new THREE.Matrix4();
+      m.compose(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * W,
+          0.022,
+          (Math.random() - 0.5) * L
+        ),
+        new THREE.Quaternion(),
+        new THREE.Vector3(0.7 + Math.random() * 0.6, 1, 0.7 + Math.random() * 0.6)
+      );
+      sandM.push(m);
+    }
+    place(sandGeo, stoneMat(0xb89060, 0.95), sandM);
+  } else if (themeId === "uae" || themeId === "australia") {
+    // Concrete slab raised seam ridges — quarter-grid
+    const seamMat = stoneMat(0x1a1a20, 0.9);
+    const seamX = new THREE.BoxGeometry(0.06, 0.045, L);
+    const xMs: THREE.Matrix4[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const m = new THREE.Matrix4();
+      m.compose(
+        new THREE.Vector3(-W / 2 + (W / 4) * i, 0.022, 0),
+        new THREE.Quaternion(),
+        new THREE.Vector3(1, 1, 1)
+      );
+      xMs.push(m);
+    }
+    place(seamX, seamMat, xMs);
+    const seamZ = new THREE.BoxGeometry(W, 0.045, 0.06);
+    const zMs: THREE.Matrix4[] = [];
+    for (let s = -L / 2 + 5; s < L / 2; s += 5) {
+      const m = new THREE.Matrix4();
+      m.compose(
+        new THREE.Vector3(0, 0.022, s),
+        new THREE.Quaternion(),
+        new THREE.Vector3(1, 1, 1)
+      );
+      zMs.push(m);
+    }
+    place(seamZ, seamMat, zMs);
+  } else if (themeId === "japan" || themeId === "china") {
+    // Wet reflective puddles — flat dark plates with slight emissive sheen
+    const puddleMat = new THREE.MeshStandardMaterial({
+      color: 0x141420,
+      roughness: 0.05,
+      metalness: 0.3,
+      emissive: 0x101428,
+      emissiveIntensity: 0.4,
+    });
+    const geo = new THREE.CircleGeometry(1, 12);
+    const ms: THREE.Matrix4[] = [];
+    for (let i = 0; i < 9; i++) {
+      const m = new THREE.Matrix4();
+      m.compose(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * W * 0.9,
+          0.022,
+          (Math.random() - 0.5) * L * 0.95
+        ),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)),
+        new THREE.Vector3(
+          0.6 + Math.random() * 0.8,
+          1,
+          0.4 + Math.random() * 0.6
+        )
+      );
+      ms.push(m);
+    }
+    place(geo, puddleMat, ms);
+  } else if (themeId === "russia") {
+    // Snow patches — soft white-blue raised mounds
+    const snowMat = stoneMat(0xeef2f8, 0.95);
+    const geo = new THREE.CylinderGeometry(0.6, 0.9, 0.05, 12);
+    const ms: THREE.Matrix4[] = [];
+    for (let i = 0; i < 12; i++) {
+      const m = new THREE.Matrix4();
+      m.compose(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * W * 0.85,
+          0.025,
+          (Math.random() - 0.5) * L * 0.9
+        ),
+        new THREE.Quaternion(),
+        new THREE.Vector3(
+          0.7 + Math.random() * 0.7,
+          1,
+          0.7 + Math.random() * 0.7
+        )
+      );
+      ms.push(m);
+    }
+    place(geo, snowMat, ms);
+  } else {
+    // usa / brazil / korea / default — clean road, just a couple manholes
+    const manholeMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1e,
+      roughness: 0.7,
+      metalness: 0.4,
+    });
+    const geo = new THREE.CylinderGeometry(0.45, 0.45, 0.05, 16);
+    const ms: THREE.Matrix4[] = [];
+    for (let i = 0; i < 2; i++) {
+      const m = new THREE.Matrix4();
+      m.compose(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * W * 0.7,
+          0.025,
+          (Math.random() - 0.5) * L * 0.85
+        ),
+        new THREE.Quaternion(),
+        new THREE.Vector3(1, 1, 1)
+      );
+      ms.push(m);
+    }
+    place(geo, manholeMat, ms);
+  }
+
+  seg.add(detailGroup);
 }
 
 function pickKind(themeId?: string): ObstacleKind {
