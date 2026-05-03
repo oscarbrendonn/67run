@@ -160,21 +160,43 @@ export class Game {
       preloadLandmark(initial.id, initial.landmark),
       this.player.mavReady(),
     ]).then(() => undefined);
+    // Mobile devices need more time AND less aggressive prefetching:
+    // mobile Safari kills tabs hitting ~600MB of pending fetches.
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (window.matchMedia && window.matchMedia("(pointer: coarse)").matches));
+    const failsafeMs = isMobile ? 45000 : 20000;
     const failsafeTimeout = new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 20000);
+      setTimeout(() => resolve(), failsafeMs);
     });
     this.assetsReady = Promise.race([assetsPromise, failsafeTimeout]);
-    // Fire-and-forget: prefetch every OTHER country's GLBs in the
-    // background so 400m theme switches don't show primitives. Player
-    // runs initial theme while these download. Total ~600MB across 12
-    // countries — slow connections finish in 1-2 minutes, fast ones in
-    // seconds. Each request is independent + cached after first hit.
+    // Background prefetch — but mobile gets a serialized, throttled
+    // version (one country at a time, 5s between starts) to avoid OOM.
+    // Desktop fires all 12 in parallel.
     setTimeout(() => {
-      for (const t of THEMES) {
-        if (t.id === initial.id) continue;
-        preloadThemeBuildings(t.id);
-        preloadThemeObstacles(t.id);
-        preloadLandmark(t.id, t.landmark);
+      const others = THEMES.filter((t) => t.id !== initial.id);
+      if (isMobile) {
+        // Sequential: load the NEXT country, wait, then the next, etc.
+        // By the time the player crosses 400m (~30s), the next theme
+        // is already cached. Memory stays bounded at ~50MB peak.
+        let i = 0;
+        const loadNext = () => {
+          if (i >= others.length) return;
+          const t = others[i++];
+          Promise.all([
+            preloadThemeBuildings(t.id),
+            preloadThemeObstacles(t.id),
+            preloadLandmark(t.id, t.landmark),
+          ]).finally(() => setTimeout(loadNext, 5000));
+        };
+        loadNext();
+      } else {
+        for (const t of others) {
+          preloadThemeBuildings(t.id);
+          preloadThemeObstacles(t.id);
+          preloadLandmark(t.id, t.landmark);
+        }
       }
     }, 100);
     this.particles = new Particles(this.scene);

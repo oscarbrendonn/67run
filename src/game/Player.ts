@@ -67,12 +67,10 @@ export class Player {
       if (this.rig.leftLeg) this.rig.leftLeg.visible = v;
       if (this.rig.rightLeg) this.rig.rightLeg.visible = v;
     };
-    // Primitive ALWAYS hidden — Oscar: "öbürü eski karakter istemiyorum,
-    // sadece üç boyutlu". The 3D Mav GLB starts loading immediately in
-    // the MavGLB constructor below, and renders into the same scene as
-    // soon as it parses. Title-screen waiting period: empty (no robot
-    // fallback ever shown) — by the time the user types a name and hits
-    // PLAY, the GLB is already on screen behind the menu overlay.
+    // Primitive starts hidden — we want only the 3D Mav. But on mobile
+    // (slow CDN, low memory) the GLB sometimes fails to parse; in that
+    // case we MUST reveal the primitive so the player isn't an invisible
+    // runner (Oscar tested on phone and saw "no character at all").
     setPrimVisible(false);
     scene.add(this.root);
 
@@ -80,8 +78,19 @@ export class Player {
     this.mavGLB.onLoaded(() => {
       const p = this.root.position;
       this.mavGLB!.root.position.set(p.x, p.y, p.z);
-      // (No primitive toggling — primitive stays hidden forever.)
+      // GLB succeeded → primitive stays hidden, only the 3D Mav shows.
+      // GLB failed (parse error / OOM on mobile) → reveal primitive as a
+      // last-resort character so the screen isn't empty.
+      if (this.mavGLB && !this.mavGLB.succeeded) {
+        setPrimVisible(true);
+      }
     });
+    // Hard failsafe: if onLoaded never fires within 15s (totally hung
+    // download — happens on bad mobile networks), reveal primitive
+    // anyway. onLoaded re-hides it the moment the GLB does arrive.
+    setTimeout(() => {
+      if (this.mavGLB && !this.mavGLB.loaded) setPrimVisible(true);
+    }, 15000);
   }
 
   reset() {
