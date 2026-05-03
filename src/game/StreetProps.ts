@@ -158,22 +158,68 @@ function buildLamppost(theme: Theme): THREE.Group {
 }
 
 function buildTree(theme: Theme): THREE.Group {
+  // Rich 3D shade tree — segmented bark trunk, two main forks, and a
+  // 5-puff foliage cluster with subtle color variation. Reads as a real
+  // tree at speed instead of "a stick with a green ball".
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 2, 8), mat(0x5a3a20));
-  trunk.position.y = 1;
-  g.add(trunk);
-  const leaves = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.4, 0),
-    mat(theme.grass === 0x1a3a24 ? 0x2a7a3a : 0x3a8a4a)
+  const trunkColor = 0x4a3018;
+  const barkBands = 6;
+  const trunkH = 2.2;
+  const segH = trunkH / barkBands;
+  // Bark — segmented cylinder for slightly tapered organic look
+  for (let i = 0; i < barkBands; i++) {
+    const r1 = 0.30 - i * 0.025;
+    const r2 = r1 - 0.018;
+    const seg = new THREE.Mesh(
+      new THREE.CylinderGeometry(r2, r1, segH * 1.04, 10),
+      mat(trunkColor + (i % 2 === 0 ? 0x080604 : 0), { rough: 0.92 })
+    );
+    seg.position.y = i * segH + segH / 2;
+    g.add(seg);
+  }
+  // Two upper forks (asymmetric — give the tree character)
+  const fork1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.18, 1.0, 8),
+    mat(trunkColor, { rough: 0.92 })
   );
-  leaves.position.y = 2.7;
-  g.add(leaves);
-  const leaves2 = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.0, 0),
-    mat(0x2a6a3a)
+  fork1.rotation.z = 0.55;
+  fork1.position.set(-0.3, trunkH + 0.35, 0);
+  g.add(fork1);
+  const fork2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.10, 0.16, 0.9, 8),
+    mat(trunkColor, { rough: 0.92 })
   );
-  leaves2.position.set(0.4, 2.4, 0.3);
-  g.add(leaves2);
+  fork2.rotation.z = -0.45;
+  fork2.position.set(0.25, trunkH + 0.4, -0.1);
+  g.add(fork2);
+
+  // Foliage — 5 overlapping puffs, subdivided icosahedra so they have
+  // visible facets at distance instead of looking like smooth balls.
+  const baseLeaf = theme.grass === 0x1a3a24 ? 0x2a7a3a : 0x3a8a4a;
+  const puffs: [number, number, number, number, number][] = [
+    // [x, y, z, radius, colorOffset]
+    [0, 3.4, 0, 1.45, 0],
+    [0.85, 3.0, 0.4, 1.1, -0x101010],
+    [-0.75, 3.1, 0.3, 1.05, +0x081008],
+    [0.2, 3.7, -0.6, 1.15, -0x081010],
+    [-0.3, 2.9, -0.65, 0.95, +0x101810],
+  ];
+  for (const [x, y, z, r, co] of puffs) {
+    const puff = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(r, 1),
+      mat(baseLeaf + co, { rough: 0.85 })
+    );
+    puff.position.set(x, y, z);
+    g.add(puff);
+  }
+  // Tiny darker shadow puff under the canopy
+  const underShadow = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(1.1, 0),
+    mat(0x1a3a1a, { rough: 0.95 })
+  );
+  underShadow.position.set(0.1, 2.6, 0.1);
+  underShadow.scale.set(1.2, 0.4, 1.2);
+  g.add(underShadow);
   return g;
 }
 

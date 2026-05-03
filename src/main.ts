@@ -29,6 +29,12 @@ const bootInterval = window.setInterval(() => {
   // landmark) before letting the player see the title screen. assetsReady
   // races against a 20s timeout so a network hiccup can't trap the user.
   await game.assetsReady;
+  // Cache is now warm — rebuild every building from scratch so the
+  // primitive placeholders that World created at init() (when cache was
+  // empty) get replaced by real GLBs in a single frame. Without this,
+  // the title screen briefly showed the primitive scene before async
+  // swaps kicked in, which Oscar called "eski grafikler".
+  game.rebuildSceneFromCache();
   // Snap to 100% then fade out.
   window.clearInterval(bootInterval);
   bootBar.style.width = "100%";

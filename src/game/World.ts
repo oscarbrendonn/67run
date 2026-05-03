@@ -523,15 +523,12 @@ export class World {
       }
     });
     const baseZ = -slot * PROP_SPACING - Math.random() * 3;
-    // Props sit on the SIDEWALK strip between the front-row buildings
-    // (inner edge ~5.5m) and the mid-row buildings (inner edge ~8.5m),
-    // so they don't end up clipped INSIDE building meshes (Oscar:
-    // "palmiyeleri evin içine sokmuşsun, düzgün yerlere koy").
-    // Sidewalk outer edge sits at TRACK_WIDTH/2 + CURB + SIDEWALK_WIDTH
-    // = 3.5 + 0.25 + 4.5 = 8.25m, so x ∈ [6.6, 7.8] keeps props on the
-    // sidewalk and clear of both building rows.
+    // Props sit on the INNER half of the sidewalk — close to the road,
+    // in front of every building row. Front buildings now start at 5.5m
+    // (was 4m) so the prop band 4.0–5.0m never overlaps a building mesh.
+    // Oscar: "ağaçlar evin içinde çıkıyor" — fixed.
     g.position.set(
-      side * (TRACK_WIDTH / 2 + 3.1 + Math.random() * 1.2),
+      side * (TRACK_WIDTH / 2 + 0.5 + Math.random() * 1.0),
       0,
       baseZ
     );
@@ -598,9 +595,12 @@ export class World {
     //   Front row sits at the curb,
     //   Mid row sits ~5–6m further from road,
     //   Back row sits ~9–11m further from road.
+    // Front row pushed back to 5.5m (was 4.0m) to leave a 4–5m strip on
+    // the sidewalk for street props (lamp / tree / palm / lantern).
+    // Mid + back unchanged.
     const innerEdge =
       rowTier === 0
-        ? TRACK_WIDTH / 2 + 0.5 + Math.random() * 0.3   // 4.0–4.3m from center
+        ? TRACK_WIDTH / 2 + 2.0 + Math.random() * 0.3   // 5.5–5.8m from center
         : rowTier === 1
         ? TRACK_WIDTH / 2 + 5.0 + Math.random() * 1.2   // 8.5–9.7m from center
         : TRACK_WIDTH / 2 + 9.5 + Math.random() * 1.8;  // 13–14.8m from center

@@ -281,6 +281,17 @@ export class Game {
     this.composer.addPass(new EffectPass(this.camera, bloom, hueSat, bc, vignette, smaa));
   }
 
+  /** Called from main.ts after assetsReady resolves — rebuilds every
+   *  building/prop using the now-warm GLB cache. Eliminates the
+   *  primitive→3D flash Oscar saw when the title screen first appeared.
+   *  forceRebuildScenery() also re-spawns landmark + flag so the entry
+   *  view is fully 3D from the very first frame the player sees. */
+  rebuildSceneFromCache() {
+    this.world.forceRebuildScenery();
+    this.world.spawnLandmark(THEMES[this.themeIndex], -90, -1);
+    this.world.spawnFlagPair(THEMES[this.themeIndex], -70);
+  }
+
   start() {
     this.phase = "playing";
     this.runSpeed = 14;
