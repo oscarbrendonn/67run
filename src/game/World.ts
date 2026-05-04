@@ -113,8 +113,10 @@ const INITIAL_SPAWN_Z = -55;
 // completely fills the depth so no sky leaks behind the front row.
 const BUILDING_COUNT = 78;
 const BUILDING_SPACING = 6;
-const PROP_COUNT = 36;
-const PROP_SPACING = 8;
+// Half the props at double spacing → same total span, ~50% density.
+// Oscar: "ağaçlar çok fazla" — fixed.
+const PROP_COUNT = 20;
+const PROP_SPACING = 14;
 
 export class World {
   scene: THREE.Scene;
@@ -522,17 +524,15 @@ export class World {
         m.receiveShadow = true;
       }
     });
-    // Heavy Z jitter (±2.5m) so props don't form a perfect dotted line
-    // along the road — Oscar: "yolun köşelerine eklemişsin, doğal değil".
-    // With this, every prop hits a different z-bucket; some line up with
-    // building gaps, some sit in the middle of a building span — natural mix.
-    const baseZ = -slot * PROP_SPACING - Math.random() * 5;
-    // Props sit on the INNER edge of the sidewalk — narrow band tight to
-    // the curb. Front buildings start at 4.6m so this band (3.6–4.1m)
-    // sits in the 0.5m strip between curb and building wall — exactly
-    // where street trees / lampposts / hydrants live in real cities.
+    // Heavy Z jitter so props don't form a perfect dotted line along the
+    // road. Some hit building gaps, some hit a building span — natural mix.
+    const baseZ = -slot * PROP_SPACING - Math.random() * 7;
+    // Props sit in the MIDDLE of the sidewalk (4.0–4.5m). Front building
+    // edge is at 5.5m, so a tree with 0.55m foliage radius (3.45–5.05m
+    // span) has 0.45m clearance from the road AND 0.45m from the building
+    // wall. No more "trees inside houses / over the road" — Oscar.
     g.position.set(
-      side * (TRACK_WIDTH / 2 + 0.1 + Math.random() * 0.5),
+      side * (TRACK_WIDTH / 2 + 0.5 + Math.random() * 0.5),
       0,
       baseZ
     );
@@ -599,16 +599,15 @@ export class World {
     //   Front row sits at the curb,
     //   Mid row sits ~5–6m further from road,
     //   Back row sits ~9–11m further from road.
-    // Front row pulled BACK toward the road (4.6m, was 5.5m) so the
-    // "wall of buildings" hugs the sidewalk again — Oscar: "binaların
-    // düzenini bozmuşsun ağaçları eklediğin zaman". Props fit in the
-    // narrow 0.5m strip 3.6–4.1m, between curb and building wall.
+    // Front row sits back at 5.5m so there's a 0.45m gap from a 0.55m-radius
+    // street tree (centered at 4.0–4.5m). Mid + back tiers spread out to
+    // form layered city skyline. No more "tree inside building".
     const innerEdge =
       rowTier === 0
-        ? TRACK_WIDTH / 2 + 1.1 + Math.random() * 0.3   // 4.6–4.9m from center
+        ? TRACK_WIDTH / 2 + 2.0 + Math.random() * 0.3   // 5.5–5.8m from center
         : rowTier === 1
-        ? TRACK_WIDTH / 2 + 4.5 + Math.random() * 1.2   // 8.0–9.2m from center
-        : TRACK_WIDTH / 2 + 9.0 + Math.random() * 1.8;  // 12.5–14.3m from center
+        ? TRACK_WIDTH / 2 + 5.0 + Math.random() * 1.2   // 8.5–9.7m from center
+        : TRACK_WIDTH / 2 + 9.5 + Math.random() * 1.8;  // 13–14.8m from center
     // Apply random rotation BEFORE measuring so bbox reflects rotated width
     g.rotation.y = (Math.random() - 0.5) * 0.4;
     g.updateMatrixWorld(true);
@@ -938,9 +937,22 @@ export class World {
     // entries spaced 2*PROP_SPACING apart. Total row length = PROP_COUNT *
     // PROP_SPACING — that's the cycle wrap distance.
     const propCycleDist = PROP_COUNT * PROP_SPACING;
+    // Bridge clearance: hide any prop sitting inside ±15m of a bridge.
+    // Otherwise lampposts/trees stab through the bridge deck — Oscar:
+    // "ağaç köprünün içinden çıkar mı, mantıksızlık".
+    const BRIDGE_CLEARANCE = 15;
     for (let i = this.props.length - 1; i >= 0; i--) {
       const p = this.props[i];
       p.group.position.z += dz;
+      // Hide prop while it overlaps a bridge zone
+      let hidden = false;
+      for (const b of this.bridges) {
+        if (Math.abs(p.group.position.z - b.z) < BRIDGE_CLEARANCE) {
+          hidden = true;
+          break;
+        }
+      }
+      p.group.visible = !hidden;
       if (p.group.position.z - playerZ > 20) {
         // Welcome-gate flag pair (slot < 0) is one-shot — destroy when it
         // scrolls past the player instead of recycling it (createProp(-1)

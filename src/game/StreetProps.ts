@@ -91,38 +91,37 @@ type PropKind =
   | "hedge";
 
 function kindsForTheme(theme: Theme): PropKind[] {
-  // Flags REMOVED from periodic props — they only appear at country-entry
-  // (Game.checkThemeSwitch → world.spawnFlagPair). Oscar: "Bayrak her yerde
-  // olmayacak. Bayrak, sadece ülkeye girerken olacak."
+  // Tree slots cut roughly in half across themes — more lamps, benches,
+  // signs, hedges fill the visual interest. Oscar: "ağaçlar çok fazla".
   switch (theme.id) {
     case "usa":
-      return ["lamp", "tree", "hedge", "bushCluster", "tree", "hydrant", "sign", "lamp", "tree", "hedge", "bench", "tree", "bushCluster", "lamp", "tree", "bushCluster"];
+      return ["lamp", "tree", "hedge", "bench", "lamp", "hydrant", "sign", "lamp", "tree", "hedge", "bench", "lamp", "bushCluster", "lamp", "hedge", "bushCluster"];
     case "brazil":
-      return ["palm", "palm", "hedge", "bushCluster", "palm", "lamp", "palm", "tree", "bench", "palm", "hedge", "palm", "bushCluster", "palm", "lamp", "palm"];
+      return ["palm", "lamp", "hedge", "bench", "palm", "lamp", "bushCluster", "tree", "bench", "palm", "hedge", "lamp", "bushCluster", "palm", "lamp", "hedge"];
     case "france":
-      return ["parisLamp", "bushCluster", "bistro", "hedge", "tree", "parisLamp", "bushCluster", "tree", "bistro", "bench", "hedge", "tree", "parisLamp", "tree", "bushCluster", "bistro"];
+      return ["parisLamp", "bench", "bistro", "hedge", "parisLamp", "bushCluster", "bistro", "tree", "bench", "parisLamp", "hedge", "tree", "bistro", "parisLamp", "bench", "bistro"];
     case "japan":
-      return ["lantern", "bushCluster", "torii", "lantern", "cherry", "hedge", "lantern", "cherry", "bushCluster", "lantern", "cherry", "torii", "bamboo", "lantern", "bushCluster", "cherry"];
+      return ["lantern", "bench", "torii", "lantern", "cherry", "hedge", "lantern", "lantern", "bushCluster", "lantern", "cherry", "torii", "bamboo", "lantern", "bench", "lantern"];
     case "turkey":
-      return ["lamp", "bushCluster", "lantern", "hedge", "tree", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "tree", "lantern", "lamp", "bushCluster", "tree"];
+      return ["lamp", "bench", "lantern", "hedge", "lamp", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "lamp", "lantern", "lamp", "bench", "tree"];
     case "uk":
-      return ["parisLamp", "bushCluster", "hedge", "tree", "parisLamp", "bench", "bushCluster", "tree", "bistro", "hedge", "parisLamp", "tree", "lamp", "tree", "bushCluster", "bistro"];
+      return ["parisLamp", "bench", "hedge", "tree", "parisLamp", "bench", "bistro", "hedge", "parisLamp", "bench", "lamp", "tree", "bistro", "parisLamp", "bench", "hedge"];
     case "russia":
-      return ["snowpine", "bushCluster", "snowman", "snowpine", "bear", "firebarrel", "snowpine", "bushCluster", "snowpine", "snowman", "snowpine", "lamp", "snowpine", "bushCluster", "snowpine", "snowman"];
+      return ["snowpine", "bench", "snowman", "snowpine", "bear", "firebarrel", "snowpine", "bench", "snowpine", "snowman", "lamp", "lamp", "snowpine", "bench", "snowpine", "snowman"];
     case "uae":
-      return ["palm", "palm", "hedge", "palm", "lamp", "bushCluster", "sign", "palm", "bench", "palm", "hedge", "palm", "lamp", "palm", "bushCluster", "palm"];
+      return ["palm", "lamp", "hedge", "palm", "lamp", "bench", "sign", "palm", "bench", "lamp", "hedge", "palm", "lamp", "palm", "bench", "lamp"];
     case "egypt":
-      return ["palm", "obelisk", "palm", "hedge", "obelisk", "bushCluster", "lamp", "palm", "bench", "palm", "hedge", "palm", "obelisk", "palm", "bushCluster", "obelisk"];
+      return ["palm", "obelisk", "palm", "hedge", "obelisk", "bench", "lamp", "palm", "bench", "lamp", "hedge", "palm", "obelisk", "palm", "bench", "obelisk"];
     case "italy":
-      return ["lamp", "tree", "bushCluster", "bistro", "hedge", "tree", "lamp", "bushCluster", "bench", "tree", "bistro", "hedge", "lamp", "tree", "bushCluster", "tree"];
+      return ["lamp", "tree", "bench", "bistro", "hedge", "lamp", "lamp", "bench", "bench", "tree", "bistro", "hedge", "lamp", "bench", "lamp", "bistro"];
     case "australia":
-      return ["palm", "tree", "bushCluster", "lamp", "hedge", "palm", "tree", "bushCluster", "bench", "palm", "lamp", "hedge", "tree", "palm", "bushCluster", "lamp"];
+      return ["palm", "lamp", "bench", "lamp", "hedge", "palm", "tree", "bench", "bench", "palm", "lamp", "hedge", "lamp", "palm", "bench", "lamp"];
     case "china":
-      return ["lantern", "bushCluster", "lamp", "lantern", "hedge", "lamp", "bushCluster", "lantern", "bench", "lamp", "lantern", "hedge", "bushCluster", "lantern", "lamp", "bushCluster"];
+      return ["lantern", "bench", "lamp", "lantern", "hedge", "lamp", "bench", "lantern", "bench", "lamp", "lantern", "hedge", "bench", "lantern", "lamp", "lantern"];
     case "korea":
-      return ["lamp", "tree", "bushCluster", "lantern", "hedge", "tree", "lamp", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "lantern", "tree", "lamp"];
+      return ["lamp", "tree", "bench", "lantern", "hedge", "lamp", "lamp", "bench", "sign", "lamp", "tree", "hedge", "bench", "lantern", "lamp", "lamp"];
     default:
-      return ["lamp", "tree", "sign", "bushCluster", "hedge"];
+      return ["lamp", "tree", "sign", "bench", "hedge"];
   }
 }
 
@@ -158,14 +157,14 @@ function buildLamppost(theme: Theme): THREE.Group {
 }
 
 function buildTree(theme: Theme): THREE.Group {
-  // BIG 3D shade tree — much taller (4.8m), thicker trunk, 8 main branches
-  // each with 2 sub-twigs + tip puffs, smooth subdivided foliage spheres.
-  // ~50 meshes total — reads unmistakably as a 3D tree, not a billboard.
+  // SMALL & detailed 3D city tree — fits in the sidewalk strip without
+  // spilling onto the road. Total silhouette: 0.55m radius, 2.6m tall.
+  // ~35 meshes — branch-tip puffs + sub-twigs + leaf crown + flared base.
+  // Oscar: "kocaman yapısına mına koyup yola taşıyorlar — küçük yap".
   const g = new THREE.Group();
   const trunkColor = 0x4a3018;
   const branchColor = 0x5a3820;
-  // Per-theme leaf color — more saturated/tropical for warm climates,
-  // muted olive for desert, deep dark green for cold themes.
+  // Per-theme leaf color
   const baseLeaf =
     theme.id === "russia" ? 0x244a30 :
     theme.id === "uae" || theme.id === "egypt" ? 0x6a7a32 :
@@ -175,147 +174,115 @@ function buildTree(theme: Theme): THREE.Group {
     theme.id === "korea" ? 0x4a9a4a :
     0x3a8a4a;
 
-  // ROOTS — flared base hemisphere, makes tree look planted
-  const roots = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.55, 0.85, 0.4, 14),
+  // Small flared base — visible "planted" look, but tight footprint (0.3m)
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.3, 0.18, 12),
     mat(trunkColor, { rough: 0.95 })
   );
-  roots.position.y = 0.2;
-  g.add(roots);
-  // 4 root buttresses sticking out from base
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2;
-    const buttress = new THREE.Mesh(
-      new THREE.BoxGeometry(0.25, 0.35, 0.7),
-      mat(trunkColor, { rough: 0.95 })
-    );
-    buttress.position.set(Math.cos(a) * 0.55, 0.18, Math.sin(a) * 0.55);
-    buttress.rotation.y = a;
-    g.add(buttress);
-  }
+  base.position.y = 0.09;
+  g.add(base);
 
-  // Tapered trunk — 12 segments, organic side wobble
-  const trunkBands = 12;
-  const trunkH = 3.4;
+  // Tapered trunk — 6 segments, slim (max r=0.14), 1.8m tall
+  const trunkBands = 6;
+  const trunkH = 1.8;
   const segH = trunkH / trunkBands;
   for (let i = 0; i < trunkBands; i++) {
-    const r1 = 0.46 - i * 0.024;
-    const r2 = r1 - 0.018;
+    const r1 = 0.16 - i * 0.012;
+    const r2 = r1 - 0.012;
     const seg = new THREE.Mesh(
-      new THREE.CylinderGeometry(r2, r1, segH * 1.06, 12),
+      new THREE.CylinderGeometry(r2, r1, segH * 1.06, 10),
       mat(trunkColor + (i % 2 === 0 ? 0x0a0804 : 0), { rough: 0.92 })
     );
     seg.position.set(
-      Math.sin(i * 0.55) * 0.05,
-      0.4 + i * segH + segH / 2,
-      Math.cos(i * 0.55) * 0.05
+      Math.sin(i * 0.55) * 0.02,
+      0.18 + i * segH + segH / 2,
+      Math.cos(i * 0.55) * 0.02
     );
     g.add(seg);
   }
 
-  // 8 main branches at varying yaws around the top
+  // 6 main branches angled outward — short reach (0.4m) so foliage stays
+  // inside ~0.55m radius from trunk center.
+  const branchTopY = 0.18 + trunkH;
   const branchSpecs: [number, number, number, number][] = [
     // [yawAngle, pitchTiltZ, length, thickness]
-    [Math.PI * 0.0, 0.55, 1.6, 0.16],
-    [Math.PI * 0.25, 0.50, 1.5, 0.15],
-    [Math.PI * 0.5, 0.62, 1.55, 0.16],
-    [Math.PI * 0.75, 0.45, 1.45, 0.14],
-    [Math.PI * 1.0, 0.58, 1.6, 0.15],
-    [Math.PI * 1.25, 0.50, 1.4, 0.13],
-    [Math.PI * 1.5, 0.62, 1.55, 0.15],
-    [Math.PI * 1.75, 0.55, 1.5, 0.14],
+    [Math.PI * 0.0, 0.55, 0.45, 0.07],
+    [Math.PI * 0.33, 0.50, 0.42, 0.065],
+    [Math.PI * 0.66, 0.62, 0.45, 0.07],
+    [Math.PI * 1.0, 0.45, 0.40, 0.06],
+    [Math.PI * 1.33, 0.58, 0.43, 0.065],
+    [Math.PI * 1.66, 0.50, 0.42, 0.065],
   ];
   for (const [yaw, tilt, len, thick] of branchSpecs) {
     const branch = new THREE.Mesh(
-      new THREE.CylinderGeometry(thick * 0.55, thick, len, 8),
+      new THREE.CylinderGeometry(thick * 0.55, thick, len, 6),
       mat(branchColor, { rough: 0.9 })
     );
     branch.rotation.order = "YZX";
     branch.rotation.y = yaw;
     branch.rotation.z = tilt;
-    const baseY = 0.4 + trunkH;
     const reachX = Math.cos(yaw) * Math.sin(tilt) * len * 0.5;
     const reachZ = Math.sin(yaw) * Math.sin(tilt) * len * 0.5;
     const upY = Math.cos(tilt) * len * 0.5;
-    branch.position.set(reachX, baseY + upY, reachZ);
+    branch.position.set(reachX, branchTopY + upY, reachZ);
     g.add(branch);
 
-    // Branch-tip foliage puff — bigger, smoother (subdivision 2)
+    // Branch-tip puff — small, smooth (subdiv 1 saves verts)
     const tipX = Math.cos(yaw) * Math.sin(tilt) * len;
     const tipZ = Math.sin(yaw) * Math.sin(tilt) * len;
-    const tipY = baseY + Math.cos(tilt) * len;
-    const r = 1.05 + Math.random() * 0.3;
-    const colorOffset = (Math.floor(Math.random() * 4) - 2) * 0x070707;
+    const tipY = branchTopY + Math.cos(tilt) * len;
+    const r = 0.3 + Math.random() * 0.08;
+    const colorOffset = (Math.floor(Math.random() * 4) - 2) * 0x060606;
     const puff = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(r, 2), // subdiv 2 = 80 faces, smoother
+      new THREE.IcosahedronGeometry(r, 1),
       mat(baseLeaf + colorOffset, { rough: 0.85 })
     );
     puff.position.set(tipX, tipY, tipZ);
     g.add(puff);
-
-    // 2 sub-twigs with their own mini puff
-    for (let s = 0; s < 2; s++) {
-      const twigYaw = yaw + (s === 0 ? 0.45 : -0.45);
-      const twigLen = 0.7;
-      const twig = new THREE.Mesh(
-        new THREE.CylinderGeometry(thick * 0.3, thick * 0.5, twigLen, 6),
-        mat(branchColor, { rough: 0.9 })
-      );
-      twig.rotation.y = twigYaw;
-      twig.rotation.z = tilt * 0.85;
-      const twigBaseX = tipX * 0.7;
-      const twigBaseZ = tipZ * 0.7;
-      const twigBaseY = baseY + Math.cos(tilt) * len * 0.7;
-      twig.position.set(
-        twigBaseX + Math.cos(twigYaw) * Math.sin(tilt) * twigLen * 0.5,
-        twigBaseY + Math.cos(tilt) * twigLen * 0.5,
-        twigBaseZ + Math.sin(twigYaw) * Math.sin(tilt) * twigLen * 0.5
-      );
-      g.add(twig);
-
-      const twigR = 0.6 + Math.random() * 0.25;
-      const tinyPuff = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(twigR, 1),
-        mat(baseLeaf - 0x081008, { rough: 0.85 })
-      );
-      tinyPuff.position.set(
-        twigBaseX + Math.cos(twigYaw) * Math.sin(tilt) * twigLen,
-        twigBaseY + Math.cos(tilt) * twigLen,
-        twigBaseZ + Math.sin(twigYaw) * Math.sin(tilt) * twigLen
-      );
-      g.add(tinyPuff);
-    }
   }
 
-  // Central crown puff — fills middle volume between branch-tip puffs
+  // Central crown — main canopy mass (0.5m radius, sits above trunk)
   const crown = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.7, 2),
+    new THREE.IcosahedronGeometry(0.5, 2),
     mat(baseLeaf, { rough: 0.85 })
   );
-  crown.position.set(0, 0.4 + trunkH + 0.9, 0);
+  crown.position.set(0, branchTopY + 0.35, 0);
   g.add(crown);
 
-  // Upper crown puff (top dome)
-  const upperCrown = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.2, 2),
+  // Upper dome — adds height variation
+  const upper = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.35, 2),
     mat(baseLeaf + 0x040804, { rough: 0.85 })
   );
-  upperCrown.position.set(0, 0.4 + trunkH + 1.85, 0);
-  g.add(upperCrown);
+  upper.position.set(0, branchTopY + 0.7, 0);
+  g.add(upper);
 
-  // Dark underside puff — canopy shadow depth
+  // 4 small fill puffs between branches — fills foliage gaps
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const fill = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.22 + Math.random() * 0.05, 1),
+      mat(baseLeaf - 0x080808, { rough: 0.85 })
+    );
+    fill.position.set(
+      Math.cos(a) * 0.28,
+      branchTopY + 0.45 + Math.random() * 0.15,
+      Math.sin(a) * 0.28
+    );
+    g.add(fill);
+  }
+
+  // Dark underside disk — canopy ground shadow
   const underShadow = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.5, 1),
+    new THREE.IcosahedronGeometry(0.5, 1),
     mat(0x1a3a1a, { rough: 0.95 })
   );
-  underShadow.position.set(0, 0.4 + trunkH + 0.15, 0);
-  underShadow.scale.set(1.4, 0.4, 1.4);
+  underShadow.position.set(0, branchTopY + 0.05, 0);
+  underShadow.scale.set(1.2, 0.35, 1.2);
   g.add(underShadow);
 
-  // Random rotation around vertical so each tree clone is unique
   g.rotation.y = Math.random() * Math.PI * 2;
-  // Slight random tilt — natural growth lean (max ~6°)
-  g.rotation.z = (Math.random() - 0.5) * 0.1;
+  g.rotation.z = (Math.random() - 0.5) * 0.06;
   return g;
 }
 
@@ -337,12 +304,12 @@ function buildPineTree(): THREE.Group {
 }
 
 function buildPalmTree(): THREE.Group {
-  // BIG 3D palm — tall curved trunk + 14 fronds, each frond has 8 leaflet
-  // pinnae (real palm-leaf shape, not flat cones), coconut cluster + dropping
-  // dates. ~150 meshes total, reads as actual palm volume from any angle.
+  // Compact 3D palm — tall trunk (5m) + 12 fronds with leaflet pinnae.
+  // Frond reach capped at 1.0m from center so it stays inside the sidewalk
+  // strip — Oscar: "yola taşıyor, küçük yap, akıllı ol".
   const g = new THREE.Group();
-  const TRUNK_H = 7.5;
-  const segs = 8; // more segments for smoother curve
+  const TRUNK_H = 5.0;
+  const segs = 7; // smoother curve
   const segH = TRUNK_H / segs;
   const lean = (Math.random() - 0.5) * 0.7;
   let yCursor = 0;
@@ -392,10 +359,11 @@ function buildPalmTree(): THREE.Group {
   g.add(crownBulb);
 
   // Fronds — 14 of them, each with 8 leaflet pinnae for real palm-leaf 3D shape
-  const FROND_COUNT = 14;
+  const FROND_COUNT = 12;
   for (let i = 0; i < FROND_COUNT; i++) {
     const ang = (i / FROND_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
-    const len = 2.8 + Math.random() * 0.9;
+    // Frond length capped to 0.95m so total palm radius stays under 1.0m
+    const len = 0.8 + Math.random() * 0.15;
     const droop = 0.95 + Math.random() * 0.45;
     const cAng = Math.cos(ang);
     const sAng = Math.sin(ang);
@@ -1074,44 +1042,72 @@ function buildSnowyPine(): THREE.Group {
   return g;
 }
 
-/** Dense bush/foliage cluster — 3-5 fluffy spheres in a tight group. Fills
- *  gaps between buildings to mimic Subway-Surfers greenery density. */
+/** Dense 3D bush — base puffs with leaf flakes scattered on top so the
+ *  silhouette breaks up. Oscar: "çalılar dandik". Now ~25 meshes. */
 function buildBushCluster(theme: Theme): THREE.Group {
   const g = new THREE.Group();
-  // Foliage tone reflects the theme's grass color (greener for tropical,
-  // muted for cold themes). Use 3 close green tones for natural variation.
   const baseGreen = theme.id === "russia"
     ? 0x244530
     : theme.id === "egypt" || theme.id === "uae"
-    ? 0x6a7a32 // dry, olive-tan
+    ? 0x6a7a32
     : theme.id === "japan"
     ? 0x2a5a3a
-    : 0x2a8a3a; // bright tropical default
+    : 0x2a8a3a;
   const tones = [
     baseGreen,
     new THREE.Color(baseGreen).offsetHSL(0, 0, 0.05).getHex(),
     new THREE.Color(baseGreen).offsetHSL(0, 0, -0.05).getHex(),
+    new THREE.Color(baseGreen).offsetHSL(0.02, 0, 0.02).getHex(),
   ];
-  // Shared geo for all spheres in this cluster — minor perf win
-  const sphereGeo = new THREE.SphereGeometry(0.55, 10, 8);
-  const count = 3 + Math.floor(Math.random() * 3); // 3–5 puffs
-  for (let i = 0; i < count; i++) {
-    const m = mat(tones[i % 3], { rough: 0.95 });
-    const puff = new THREE.Mesh(sphereGeo, m);
-    const r = 0.45 + Math.random() * 0.35; // 0.45-0.8m
-    puff.scale.setScalar(r * 1.4);
-    puff.position.set(
-      (Math.random() - 0.5) * 1.2,
-      r * 0.7,
-      (Math.random() - 0.5) * 1.0
+  // 4 main body puffs — icosahedron with subdivision = visible facets
+  const bodyCount = 4;
+  for (let i = 0; i < bodyCount; i++) {
+    const m = mat(tones[i % tones.length], { rough: 0.95 });
+    const r = 0.32 + Math.random() * 0.16;
+    const puff = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(r, 1),
+      m
     );
-    // Big puffs receive but don't cast (perf — too many would slow shadow pass)
+    const ang = (i / bodyCount) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 0.18 + Math.random() * 0.18;
+    puff.position.set(
+      Math.cos(ang) * dist,
+      r * 0.85 + Math.random() * 0.05,
+      Math.sin(ang) * dist
+    );
+    puff.scale.set(1 + Math.random() * 0.15, 0.95, 1 + Math.random() * 0.15);
+    puff.rotation.set(Math.random(), Math.random(), Math.random());
     puff.receiveShadow = true;
     g.add(puff);
   }
-  // Small visible dirt patch under cluster
+  // Center crown puff
+  const crown = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.32, 1),
+    mat(tones[0], { rough: 0.95 })
+  );
+  crown.position.set(0, 0.55, 0);
+  g.add(crown);
+  // 14 small leaf flakes scattered on top — break up the smooth-sphere look
+  for (let i = 0; i < 14; i++) {
+    const r = 0.06 + Math.random() * 0.06;
+    const flake = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(r, 0),
+      mat(tones[i % tones.length] + 0x040a04, { rough: 0.95 })
+    );
+    const a = Math.random() * Math.PI * 2;
+    const d = 0.1 + Math.random() * 0.4;
+    flake.position.set(
+      Math.cos(a) * d,
+      0.4 + Math.random() * 0.45,
+      Math.sin(a) * d
+    );
+    flake.scale.set(1.2, 0.5, 1.2);
+    flake.rotation.set(Math.random(), Math.random(), Math.random());
+    g.add(flake);
+  }
+  // Dirt patch under cluster
   const dirt = new THREE.Mesh(
-    new THREE.CircleGeometry(0.95, 12),
+    new THREE.CircleGeometry(0.7, 12),
     mat(0x4a3a1c, { rough: 1 })
   );
   dirt.rotation.x = -Math.PI / 2;
@@ -1120,7 +1116,7 @@ function buildBushCluster(theme: Theme): THREE.Group {
   return g;
 }
 
-/** Low rectangular hedge — a 2.5m long privet wall along the road. */
+/** 3D hedge — narrow body covered with 6 fluffy lobes + leaf flakes. */
 function buildHedge(theme: Theme): THREE.Group {
   const g = new THREE.Group();
   const greenColor = theme.id === "russia"
@@ -1131,18 +1127,38 @@ function buildHedge(theme: Theme): THREE.Group {
     ? 0x2a5a3a
     : 0x2a8a3a;
   const m = mat(greenColor, { rough: 0.95 });
-  // Main hedge body
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.85, 0.55), m);
-  body.position.y = 0.43;
+  const mDark = mat(greenColor - 0x081008, { rough: 0.95 });
+  const mLight = mat(greenColor + 0x080a04, { rough: 0.92 });
+  // Narrower main body — fits in 0.5m sidewalk strip
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.7, 0.42), m);
+  body.position.y = 0.36;
   body.receiveShadow = true;
   g.add(body);
-  // Add fluffy spheres on top to break the boxy silhouette
-  const puffGeo = new THREE.SphereGeometry(0.3, 8, 6);
-  for (let x = -1.0; x <= 1.0; x += 0.4) {
-    const puff = new THREE.Mesh(puffGeo, m);
-    puff.scale.setScalar(0.85 + Math.random() * 0.25);
-    puff.position.set(x + (Math.random() - 0.5) * 0.1, 0.85 + Math.random() * 0.05, 0);
-    g.add(puff);
+  // 6 fluffy icosahedron lobes on top
+  for (let i = 0; i < 6; i++) {
+    const t = i / 5;
+    const lobe = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.26 + Math.random() * 0.05, 1),
+      i % 2 === 0 ? m : mLight
+    );
+    lobe.position.set(-0.95 + t * 1.9 + (Math.random() - 0.5) * 0.08, 0.78, 0);
+    lobe.scale.set(1, 0.85, 0.95);
+    lobe.rotation.set(Math.random() * 0.3, Math.random(), Math.random() * 0.3);
+    g.add(lobe);
+  }
+  // Front + back face fillers — leafy flakes covering the box flat sides
+  for (let i = 0; i < 18; i++) {
+    const flake = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.07 + Math.random() * 0.04, 0),
+      i % 3 === 0 ? mDark : m
+    );
+    const x = -1.0 + (i / 17) * 2.0 + (Math.random() - 0.5) * 0.08;
+    const z = (Math.random() < 0.5 ? -1 : 1) * (0.21 + Math.random() * 0.05);
+    const y = 0.15 + Math.random() * 0.55;
+    flake.position.set(x, y, z);
+    flake.scale.set(1.2, 0.55, 1.0);
+    flake.rotation.set(Math.random(), Math.random(), Math.random());
+    g.add(flake);
   }
   return g;
 }
