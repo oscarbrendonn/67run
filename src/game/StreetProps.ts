@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { buildFlagPole } from "./Flags";
 import { loadFlagModel } from "./FlagLoader";
+import { loadTreeModel, loadBushModel, loadHedgeModel } from "./TreeLoader";
 import type { Theme } from "./Themes";
 
 /** Build a themed "prop" piece — lamppost, tree, sign — to be placed along the track. */
@@ -10,8 +11,16 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
   switch (kind) {
     case "lamp":
       return buildLamppost(theme);
-    case "tree":
-      return buildTree(theme);
+    case "tree": {
+      // Primitive placeholder, lazy-swap with Meshy GLB tree per theme
+      const placeholder = buildTree(theme);
+      loadTreeModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "palm":
       return buildPalmTree();
     case "pine":
@@ -59,10 +68,24 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       return buildFireBarrel();
     case "obelisk":
       return buildSideObelisk();
-    case "bushCluster":
-      return buildBushCluster(theme);
-    case "hedge":
-      return buildHedge(theme);
+    case "bushCluster": {
+      const placeholder = buildBushCluster(theme);
+      loadBushModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "hedge": {
+      const placeholder = buildHedge(theme);
+      loadHedgeModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
   }
 }
 
