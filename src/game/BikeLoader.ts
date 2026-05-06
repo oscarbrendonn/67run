@@ -142,17 +142,12 @@ export async function loadBike(): Promise<BikeRig | null> {
         }
       });
 
-      // Build wrapper that holds bike body + 2 procedural wheels.
-      // Wheel positions: bbox front-most & back-most along Z, just below center Y.
-      const finalBox = new THREE.Box3().setFromObject(body);
-      const fSize = finalBox.getSize(new THREE.Vector3());
-      const wheelRadius = fSize.y * 0.32;
-      const wheelY = wheelRadius;
-
-      const frontWheel = buildWheel(wheelRadius);
-      frontWheel.position.set(0, wheelY, finalBox.max.z * 0.85);
-      const backWheel = buildWheel(wheelRadius);
-      backWheel.position.set(0, wheelY, finalBox.min.z * 0.85);
+      // The bike GLB already has its own wheels modeled — adding
+      // procedural overlays just causes z-fighting. Use stub groups
+      // so the type contract still has frontWheel / backWheel handles
+      // (spinWheels is now a no-op visually but keeps the API stable).
+      const frontWheel = new THREE.Group();
+      const backWheel = new THREE.Group();
 
       const wrapper = new THREE.Group();
       // Meshy GLB came out of a side-profile reference, so the bike's
