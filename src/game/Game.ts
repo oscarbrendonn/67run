@@ -223,6 +223,18 @@ export class Game {
       else if (e.type === "right") this.player.moveRight();
       else if (e.type === "jump") this.player.jump();
       else if (e.type === "slide") this.player.slide();
+      else if (e.type === "bike") {
+        // Dev cheat: instantly mount the bike (no need to find a pickup)
+        if (this.player.state !== "bike" && this.player.state !== "fly") {
+          this.player.startBike();
+          this.particles.coinBurst(
+            this.player.rig.root.position.x,
+            this.player.y + 1.5,
+            0
+          );
+          this.ui.showFlyStart();
+        }
+      }
     });
 
     window.addEventListener("resize", () => this.onResize());

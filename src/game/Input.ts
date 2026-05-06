@@ -2,7 +2,8 @@ export type InputEvent =
   | { type: "left" }
   | { type: "right" }
   | { type: "jump" }
-  | { type: "slide" };
+  | { type: "slide" }
+  | { type: "bike" };  // dev cheat key to instantly mount the bike
 
 export class Input {
   private listeners: ((e: InputEvent) => void)[] = [];
@@ -30,6 +31,10 @@ export class Input {
         case "ArrowDown":
         case "KeyS":
           this.emit({ type: "slide" });
+          break;
+        case "KeyB":
+          // Dev cheat — press B to instantly mount the bike
+          this.emit({ type: "bike" });
           break;
       }
     });

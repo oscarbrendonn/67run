@@ -1081,14 +1081,16 @@ export class World {
         continue;
       }
       this.tunnelCooldown -= gap;
-      // Rare powerup — flying car OR bike (alternating, ~every 500-800m)
+      // Rare powerup — flying car OR bike. While testing the bike feature
+      // we shorten cadence + bias toward bikes so the player meets one
+      // within the first ~150m. (TODO: revert before main merge.)
       if (
-        this.spawnedZ < this.lastPowerupZ - 500 - Math.random() * 300 &&
-        Math.random() < 0.5
+        this.spawnedZ < this.lastPowerupZ - 120 - Math.random() * 80 &&
+        Math.random() < 0.7
       ) {
         const lane = Math.floor(Math.random() * 3);
-        // 50/50 between bike and car
-        if (Math.random() < 0.5) {
+        // 75% bike, 25% car during the test phase
+        if (Math.random() < 0.75) {
           this.addBikePowerup(lane, this.spawnedZ);
         } else {
           this.addPowerup(lane, this.spawnedZ, 1.8);
