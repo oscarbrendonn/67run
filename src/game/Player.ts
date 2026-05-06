@@ -9,17 +9,23 @@ import {
 } from "./Character";
 import { buildFlyingCar, setCarFlying } from "./FlyingCar";
 import { MavGLB } from "./MavGLB";
+import { loadBike, spinWheels, BikeRig } from "./BikeLoader";
 
 export const LANE_X = [-1.85, 0, 1.85];
 export const FLY_DISTANCE_M = 100;
 export const FLY_HEIGHT = 3.2;
+/** How far Mav rides the bike before dismounting. Subway-Surfers
+ *  hoverboard equivalent: ~200m run-distance = ~25 seconds. */
+export const BIKE_DISTANCE_M = 200;
+/** Speed multiplier while on bike. */
+export const BIKE_SPEED_MULT = 1.55;
 
 export class Player {
   laneIndex = 1;
   targetX = 0;
   y = 0;
   vy = 0;
-  state: "run" | "jump" | "slide" | "fly" = "run";
+  state: "run" | "jump" | "slide" | "fly" | "bike" = "run";
   slideTimer = 0;
   alive = true;
   rig: CharacterRig;
@@ -30,6 +36,10 @@ export class Player {
   /** Vertical offset added by tunnel descent — separate from jump physics */
   tunnelOffset = 0;
   private car: THREE.Group | null = null;
+  // Bike state
+  bikeDistanceRemaining = 0;
+  private bikeRig: BikeRig | null = null;
+  private bikeLeanZ = 0; // smoothed lane lean for the bike
   // GLB Mav (loaded async — replaces primitive when ready)
   private mavGLB: MavGLB | null = null;
 
@@ -141,6 +151,56 @@ export class Player {
     poseIdle(this.rig);
   }
 
+  /** Mount the GUTS supermoto. Mav stays on the ground but is invincible
+   *  and runs ~1.55× faster. Wheelie-feel pose: arms forward to the
+   *  handlebars, legs bent on the pegs, body leaned slightly. */
+  async startBike() {
+    this.state = "bike";
+    this.bikeDistanceRemaining = BIKE_DISTANCE_M;
+    this.y = 0;
+    this.vy = 0;
+    this.poseBike();
+    this.mavGLB?.setState("run"); // GLB Mav uses the run pose during bike — looks fine
+    if (!this.bikeRig) {
+      const rig = await loadBike();
+      if (rig) {
+        this.bikeRig = rig;
+        // Tuck the bike under Mav's feet
+        rig.root.position.set(0, 0, 0);
+        this.root.add(rig.root);
+      }
+    } else {
+      this.bikeRig.root.visible = true;
+    }
+  }
+
+  endBike() {
+    this.state = "run";
+    this.bikeDistanceRemaining = 0;
+    this.bikeLeanZ = 0;
+    if (this.bikeRig) {
+      this.bikeRig.root.visible = false;
+    }
+    this.y = 0;
+    this.vy = 0;
+    poseIdle(this.rig);
+    this.mavGLB?.setState("run");
+  }
+
+  /** Sit-on-bike pose for the primitive Mav rig. */
+  private poseBike() {
+    // Arms forward to grip handlebars
+    this.rig.leftArm.rotation.x = -1.4;
+    this.rig.rightArm.rotation.x = -1.4;
+    this.rig.leftArm.rotation.z = 0.1;
+    this.rig.rightArm.rotation.z = -0.1;
+    // Legs bent (knees up on the pegs)
+    this.rig.leftLeg.rotation.x = -0.7;
+    this.rig.rightLeg.rotation.x = -0.7;
+    // Body leans slightly forward
+    this.root.rotation.x = 0;
+  }
+
   moveLeft() {
     if (!this.alive) return;
     this.laneIndex = Math.max(0, this.laneIndex - 1);
@@ -215,6 +275,24 @@ export class Player {
       if (this.flyDistanceRemaining <= 0) this.endFly();
     }
 
+    if (this.state === "bike") {
+      // AIRBORNE — same behaviour as the flying car: rise to FLY_HEIGHT,
+      // bob gently, skip every obstacle. Subway-Surfers jetpack feel.
+      const targetY = FLY_HEIGHT + Math.sin(performance.now() * 0.005) * 0.15;
+      this.y += (targetY - this.y) * Math.min(1, dt * 4);
+      // Wheels keep spinning even in the air — looks great, low-cost.
+      if (this.bikeRig) {
+        spinWheels(this.bikeRig, dt * runSpeed * 1.4);
+        // Lane-swap lean: smoothly tilt the bike + Mav around Z toward
+        // the target lane, max 0.35 rad (~20°). Subway-Surfers carve.
+        const wantLean = (this.targetX - this.root.position.x) * 0.18;
+        this.bikeLeanZ += (wantLean - this.bikeLeanZ) * Math.min(1, dt * 8);
+        this.bikeRig.root.rotation.z = this.bikeLeanZ;
+      }
+      this.bikeDistanceRemaining -= runSpeed * dt;
+      if (this.bikeDistanceRemaining <= 0) this.endBike();
+    }
+
     this.root.position.y = this.y;
 
     // Sync GLB Mav transform with root + tick mixer
@@ -250,7 +328,7 @@ export class Player {
   }
 
   isInvincible(): boolean {
-    return this.state === "fly";
+    return this.state === "fly" || this.state === "bike";
   }
 
   getBox(): { minX: number; maxX: number; minY: number; maxY: number } {

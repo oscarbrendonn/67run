@@ -90,7 +90,7 @@ interface BridgeEntry {
 
 export interface PowerUp {
   group: THREE.Group;
-  kind: "car";
+  kind: "car" | "bike";
   lane: number;
   z: number;
   y: number;
@@ -1081,12 +1081,18 @@ export class World {
         continue;
       }
       this.tunnelCooldown -= gap;
-      // Rare flying car powerup — roughly every 500-800m
+      // Rare powerup — flying car OR bike (alternating, ~every 500-800m)
       if (
         this.spawnedZ < this.lastPowerupZ - 500 - Math.random() * 300 &&
         Math.random() < 0.5
       ) {
-        this.addPowerup(Math.floor(Math.random() * 3), this.spawnedZ, 1.8);
+        const lane = Math.floor(Math.random() * 3);
+        // 50/50 between bike and car
+        if (Math.random() < 0.5) {
+          this.addBikePowerup(lane, this.spawnedZ);
+        } else {
+          this.addPowerup(lane, this.spawnedZ, 1.8);
+        }
         this.lastPowerupZ = this.spawnedZ;
       }
       if (Math.random() < 0.22) this.spawnCoinRow(this.spawnedZ);
@@ -1109,6 +1115,54 @@ export class World {
     car.add(ring);
     this.scene.add(car);
     this.powerups.push({ group: car, kind: "car", lane, z, y, collected: false });
+  }
+
+  /** Bike powerup — Subway-Surfers jetpack/rocket style: floating in
+   *  mid-air, slowly rotating, ringed by a magenta halo. Run into it
+   *  to instantly mount the GUTS supermoto and fly over obstacles. */
+  private addBikePowerup(lane: number, z: number) {
+    const g = new THREE.Group();
+    // Floating purple crate with the "67" mark
+    const crate = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 0.9, 0.9),
+      new THREE.MeshStandardMaterial({
+        color: 0x6c3df0,
+        roughness: 0.5,
+        metalness: 0.35,
+        emissive: 0x4216c8,
+        emissiveIntensity: 0.7,
+      })
+    );
+    g.add(crate);
+    // Glowing 67 plate on each side
+    for (let i = 0; i < 4; i++) {
+      const label = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.7, 0.4),
+        new THREE.MeshBasicMaterial({ map: bikeCrateLabel(), transparent: true })
+      );
+      label.rotation.y = (i * Math.PI) / 2;
+      const off = 0.46;
+      label.position.set(Math.sin(label.rotation.y) * off, 0, Math.cos(label.rotation.y) * off);
+      g.add(label);
+    }
+    // Outer halo ring (rotates with crate, gives "powerup" reading)
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(1.05, 0.07, 10, 36),
+      new THREE.MeshBasicMaterial({ color: 0xff3df0, transparent: true, opacity: 0.9 })
+    );
+    halo.rotation.x = Math.PI / 2;
+    g.add(halo);
+    // Inner sparkle ring (smaller, opposite rotation)
+    const inner = new THREE.Mesh(
+      new THREE.TorusGeometry(0.7, 0.03, 8, 28),
+      new THREE.MeshBasicMaterial({ color: 0xfff7ff, transparent: true, opacity: 0.7 })
+    );
+    inner.rotation.z = Math.PI / 2;
+    g.add(inner);
+    // Hover position — mid-air, like Subway Surfers' rocket / jetpack
+    g.position.set(LANE_X[lane], 1.8, z);
+    this.scene.add(g);
+    this.powerups.push({ group: g, kind: "bike", lane, z, y: 1.8, collected: false });
   }
 
   /** Check if player intersects any uncollected powerup. Returns the picked up one or null. */
@@ -2172,5 +2226,33 @@ function makeTokenTexture(): THREE.Texture {
   ctx.fillText("67", 64, 68);
   const tex = new THREE.CanvasTexture(c);
   tex.anisotropy = 4;
+  return tex;
+}
+
+let _bikeCrateLabel: THREE.Texture | null = null;
+function bikeCrateLabel(): THREE.Texture {
+  if (_bikeCrateLabel) return _bikeCrateLabel;
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 128;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 256, 128);
+  // Soft glow background
+  const g = ctx.createRadialGradient(128, 64, 8, 128, 64, 110);
+  g.addColorStop(0, "rgba(255, 240, 255, 0.95)");
+  g.addColorStop(1, "rgba(255, 100, 240, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 128);
+  // Number
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 92px -apple-system, Inter, Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "#ff3df0";
+  ctx.shadowBlur = 18;
+  ctx.fillText("67", 128, 70);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  _bikeCrateLabel = tex;
   return tex;
 }

@@ -519,7 +519,11 @@ export class Game {
     this.runSpeed = Math.min(this.runSpeed, target);
     this.chaseFactor = Math.min(1, this.chaseFactor + dt * 0.015);
 
-    const dz = this.runSpeed * dt;
+    // Bike powerup boost — Subway-Surfers feel
+    const effectiveSpeed = this.player.state === "bike"
+      ? this.runSpeed * 1.55
+      : this.runSpeed;
+    const dz = effectiveSpeed * dt;
     this.distance += dz;
     this.score += dz * 0.7;
 
@@ -530,7 +534,7 @@ export class Game {
     this.world.spawnAhead(0);
     this.maybeSpawnLandmark();
 
-    this.player.update(dt, this.runSpeed);
+    this.player.update(dt, effectiveSpeed);
     // Tunnel underground descent — apply Y offset on top of player.y
     const tunnelOffset = this.world.getTunnelOffset();
     if (tunnelOffset !== 0 || this.player.tunnelOffset !== 0) {
@@ -591,14 +595,18 @@ export class Game {
     const passed = this.world.passCheck(0);
     if (passed > 0) this.score += passed * 5;
 
-    // Power-up pickup (flying car)
+    // Power-up pickup (flying car or bike — both grant invincibility)
     const pu = this.world.collectPowerup(
       this.player.rig.root.position.x,
       this.player.y,
       0
     );
     if (pu) {
-      this.player.startFly();
+      if (pu.kind === "bike") {
+        this.player.startBike();
+      } else {
+        this.player.startFly();
+      }
       this.particles.coinBurst(
         this.player.rig.root.position.x,
         this.player.y + 1.5,
@@ -607,9 +615,11 @@ export class Game {
       this.ui.showFlyStart();
     }
 
-    // Update fly HUD
+    // Update powerup HUD (fly OR bike — both reuse the same meter)
     if (this.player.state === "fly") {
       this.ui.setFlyMeter(this.player.flyDistanceRemaining);
+    } else if (this.player.state === "bike") {
+      this.ui.setFlyMeter(this.player.bikeDistanceRemaining);
     } else {
       this.ui.setFlyMeter(0);
     }
