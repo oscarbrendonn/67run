@@ -151,21 +151,34 @@ export class Player {
     poseIdle(this.rig);
   }
 
-  /** Mount the GUTS supermoto. Mav stays on the ground but is invincible
-   *  and runs ~1.55× faster. Wheelie-feel pose: arms forward to the
-   *  handlebars, legs bent on the pegs, body leaned slightly. */
+  /** Mount the GUTS supermoto. Mav stays in the air invincibly,
+   *  the bike rises with him. Subway-Surfers jetpack feel. */
   async startBike() {
     this.state = "bike";
     this.bikeDistanceRemaining = BIKE_DISTANCE_M;
     this.y = 0;
     this.vy = 0;
+    // PARANOID hide on every visible primitive Mav part — Oscar saw the
+    // skeleton showing through the GLB on the bike, even though the
+    // constructor already hid these. Re-asserting at mount time.
+    const hidePrim = (o: THREE.Object3D | undefined) => {
+      if (!o) return;
+      o.visible = false;
+      o.traverse?.((c) => (c.visible = false));
+    };
+    hidePrim(this.rig.body);
+    hidePrim(this.rig.head);
+    hidePrim(this.rig.leftArm);
+    hidePrim(this.rig.rightArm);
+    hidePrim(this.rig.leftLeg);
+    hidePrim(this.rig.rightLeg);
     this.poseBike();
-    this.mavGLB?.setState("run"); // GLB Mav uses the run pose during bike — looks fine
+    this.mavGLB?.setState("run");
     if (!this.bikeRig) {
       const rig = await loadBike();
       if (rig) {
         this.bikeRig = rig;
-        // Tuck the bike under Mav's feet
+        // Sit the bike under Mav's feet
         rig.root.position.set(0, 0, 0);
         this.root.add(rig.root);
       }
@@ -298,7 +311,9 @@ export class Player {
     // Sync GLB Mav transform with root + tick mixer
     if (this.mavGLB && this.mavGLB.loaded) {
       const p = this.root.position;
-      this.mavGLB.root.position.set(p.x, p.y, p.z);
+      // While on the bike, lift the GLB Mav onto the seat (~0.45m).
+      const seatOffset = this.state === "bike" ? 0.45 : 0;
+      this.mavGLB.root.position.set(p.x, p.y + seatOffset, p.z);
       this.mavGLB.root.rotation.set(this.root.rotation.x, this.root.rotation.y, this.root.rotation.z);
       // Slide squash effect on GLB too
       this.mavGLB.root.scale.set(1, this.root.scale.y, 1);

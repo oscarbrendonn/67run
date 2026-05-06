@@ -101,6 +101,10 @@ export async function loadBike(): Promise<BikeRig | null> {
       backWheel.position.set(0, wheelY, finalBox.min.z * 0.85);
 
       const wrapper = new THREE.Group();
+      // Meshy GLB came out of a side-profile reference, so the bike's
+      // forward axis is +X. Game forward is -Z, so rotate -90° around Y
+      // to point the bike down the track.
+      wrapper.rotation.y = -Math.PI / 2;
       wrapper.add(body);
       wrapper.add(frontWheel);
       wrapper.add(backWheel);
