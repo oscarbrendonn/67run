@@ -6,7 +6,9 @@ export type MavState = "idle" | "run" | "jump" | "slide" | "dead" | "bike";
 
 const V = `?v=${__BUILD_VERSION__}`;
 const MODEL_BASE = `${ASSET_BASE}/models/mav-final-rigged.glb${V}`;
-const ANIMATIONS: Record<Exclude<MavState, "idle">, string> = {
+// "bike" intentionally absent — bike state hides the GLB Mav and shows
+// the combined Mav-on-bike GLB instead, so no animation is needed.
+const ANIMATIONS: Record<Exclude<MavState, "idle" | "bike">, string> = {
   run:   `${ASSET_BASE}/models/mav-final-running.glb${V}`,
   jump:  `${ASSET_BASE}/models/mav-final-jump.glb${V}`,
   slide: `${ASSET_BASE}/models/mav-final-slide.glb${V}`,
