@@ -9,7 +9,7 @@ import {
 } from "./Character";
 import { buildFlyingCar, setCarFlying } from "./FlyingCar";
 import { MavGLB } from "./MavGLB";
-import { loadBike, spinWheels, BikeRig } from "./BikeLoader";
+import { loadBike, loadCombinedMavBike, spinWheels, BikeRig } from "./BikeLoader";
 
 export const LANE_X = [-1.85, 0, 1.85];
 export const FLY_DISTANCE_M = 100;
@@ -39,6 +39,7 @@ export class Player {
   // Bike state
   bikeDistanceRemaining = 0;
   private bikeRig: BikeRig | null = null;
+  private combinedBike: THREE.Group | null = null;
   private bikeLeanZ = 0; // smoothed lane lean for the bike
   // GLB Mav (loaded async — replaces primitive when ready)
   private mavGLB: MavGLB | null = null;
@@ -151,16 +152,15 @@ export class Player {
     poseIdle(this.rig);
   }
 
-  /** Mount the GUTS supermoto. Mav stays in the air invincibly,
-   *  the bike rises with him. Subway-Surfers jetpack feel. */
+  /** Mount the bike. Default: combined Mav-on-bike GLB (Mav already
+   *  sitting on the bike, single mesh). Hides every other Mav variant
+   *  while the combined GLB renders. */
   async startBike() {
     this.state = "bike";
     this.bikeDistanceRemaining = BIKE_DISTANCE_M;
     this.y = 0;
     this.vy = 0;
-    // PARANOID hide on every visible primitive Mav part — Oscar saw the
-    // skeleton showing through the GLB on the bike, even though the
-    // constructor already hid these. Re-asserting at mount time.
+    // Hide every Mav rendering — combined GLB will be the only visible Mav
     const hidePrim = (o: THREE.Object3D | undefined) => {
       if (!o) return;
       o.visible = false;
@@ -172,18 +172,35 @@ export class Player {
     hidePrim(this.rig.rightArm);
     hidePrim(this.rig.leftLeg);
     hidePrim(this.rig.rightLeg);
-    this.poseBike();
-    this.mavGLB?.setState("run");
-    if (!this.bikeRig) {
-      const rig = await loadBike();
-      if (rig) {
-        this.bikeRig = rig;
-        // Sit the bike under Mav's feet
-        rig.root.position.set(0, 0, 0);
-        this.root.add(rig.root);
+    if (this.mavGLB?.root) this.mavGLB.root.visible = false;
+
+    // Try combined GLB first (Mav + bike single mesh — no overlap issues)
+    if (!this.combinedBike) {
+      const cb = await loadCombinedMavBike();
+      if (cb) {
+        this.combinedBike = cb;
+        cb.position.set(0, 0, 0);
+        this.root.add(cb);
       }
     } else {
-      this.bikeRig.root.visible = true;
+      this.combinedBike.visible = true;
+    }
+    // If the combined GLB failed, fall back to the bike-only rig + pose
+    if (!this.combinedBike) {
+      this.poseBike();
+      // Show GLB Mav again as the rider
+      if (this.mavGLB?.root) this.mavGLB.root.visible = true;
+      this.mavGLB?.setState("run");
+      if (!this.bikeRig) {
+        const rig = await loadBike();
+        if (rig) {
+          this.bikeRig = rig;
+          rig.root.position.set(0, 0, 0);
+          this.root.add(rig.root);
+        }
+      } else {
+        this.bikeRig.root.visible = true;
+      }
     }
   }
 
@@ -191,9 +208,10 @@ export class Player {
     this.state = "run";
     this.bikeDistanceRemaining = 0;
     this.bikeLeanZ = 0;
-    if (this.bikeRig) {
-      this.bikeRig.root.visible = false;
-    }
+    if (this.combinedBike) this.combinedBike.visible = false;
+    if (this.bikeRig) this.bikeRig.root.visible = false;
+    // Restore the regular Mav GLB rider
+    if (this.mavGLB?.root) this.mavGLB.root.visible = true;
     this.y = 0;
     this.vy = 0;
     poseIdle(this.rig);
@@ -293,13 +311,12 @@ export class Player {
       // bob gently, skip every obstacle. Subway-Surfers jetpack feel.
       const targetY = FLY_HEIGHT + Math.sin(performance.now() * 0.005) * 0.15;
       this.y += (targetY - this.y) * Math.min(1, dt * 4);
-      // Wheels keep spinning even in the air — looks great, low-cost.
+      // Smooth lane-swap lean — applied to whichever bike rig is active
+      const wantLean = (this.targetX - this.root.position.x) * 0.18;
+      this.bikeLeanZ += (wantLean - this.bikeLeanZ) * Math.min(1, dt * 8);
+      if (this.combinedBike) this.combinedBike.rotation.z = this.bikeLeanZ;
       if (this.bikeRig) {
         spinWheels(this.bikeRig, dt * runSpeed * 1.4);
-        // Lane-swap lean: smoothly tilt the bike + Mav around Z toward
-        // the target lane, max 0.35 rad (~20°). Subway-Surfers carve.
-        const wantLean = (this.targetX - this.root.position.x) * 0.18;
-        this.bikeLeanZ += (wantLean - this.bikeLeanZ) * Math.min(1, dt * 8);
         this.bikeRig.root.rotation.z = this.bikeLeanZ;
       }
       this.bikeDistanceRemaining -= runSpeed * dt;

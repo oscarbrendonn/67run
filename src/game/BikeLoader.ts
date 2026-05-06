@@ -9,17 +9,71 @@ import { ASSET_BASE } from "./AssetBase";
  * bbox-detected wheel positions and rotate them every frame.
  */
 
-const TARGET_HEIGHT = 1.6;
+// Combined Mav-on-bike: Mav sits on the bike at runtime height.
+// Bike-only fallback (without Mav) used if combined GLB fails to load.
+const COMBINED_HEIGHT = 2.4;
+const BIKE_ONLY_HEIGHT = 1.6;
 const loader = new GLTFLoader();
 type Template = { wrapper: THREE.Group; frontWheel: THREE.Group; backWheel: THREE.Group };
 let cachedTemplate: Template | null = null;
 let inflight: Promise<Template | null> | null = null;
+let combinedRigCache: THREE.Group | null = null;
+let combinedRigInflight: Promise<THREE.Group | null> | null = null;
 
 export interface BikeRig {
   root: THREE.Group;
   body: THREE.Object3D;
   frontWheel: THREE.Group;
   backWheel: THREE.Group;
+  /** True when this rig already includes Mav (combined GLB).
+   *  In that case Player should hide its own Mav GLB. */
+  combined: boolean;
+}
+
+/** Loads the combined Mav-on-bike GLB (single mesh, no rig overlap).
+ *  Returns the cloned root, or null on failure. */
+export async function loadCombinedMavBike(): Promise<THREE.Group | null> {
+  if (combinedRigCache) return combinedRigCache.clone(true);
+  if (combinedRigInflight) {
+    const r = await combinedRigInflight;
+    return r ? r.clone(true) : null;
+  }
+  combinedRigInflight = (async () => {
+    try {
+      const url = `${ASSET_BASE}/models/bike/mav-on-bike.glb?v=${__BUILD_VERSION__}`;
+      const gltf = await loader.loadAsync(url);
+      const m = gltf.scene;
+      // Normalize: scale to COMBINED_HEIGHT (Mav + bike together), center XZ, feet at Y=0
+      const bbox = new THREE.Box3().setFromObject(m);
+      const size = bbox.getSize(new THREE.Vector3());
+      const scale = COMBINED_HEIGHT / Math.max(0.001, size.y);
+      m.scale.setScalar(scale);
+      m.updateMatrixWorld(true);
+      const sb = new THREE.Box3().setFromObject(m);
+      m.position.x -= (sb.min.x + sb.max.x) / 2;
+      m.position.z -= (sb.min.z + sb.max.z) / 2;
+      m.position.y -= sb.min.y;
+      m.traverse((c) => {
+        const me = c as THREE.Mesh;
+        if (me.isMesh) {
+          me.castShadow = true;
+          me.receiveShadow = true;
+        }
+      });
+      const wrapper = new THREE.Group();
+      // Combined GLB renders sideways, like the bike-only — rotate to face -Z
+      wrapper.rotation.y = -Math.PI / 2;
+      wrapper.add(m);
+      combinedRigCache = wrapper;
+      return wrapper;
+    } catch (err) {
+      console.warn("Combined Mav-on-bike GLB load failed:", err);
+      return null;
+    }
+  })();
+  const r = await combinedRigInflight;
+  combinedRigInflight = null;
+  return r ? r.clone(true) : null;
 }
 
 /** Build one procedural wheel — black tire + silver rim + 6 spokes.
@@ -73,7 +127,7 @@ export async function loadBike(): Promise<BikeRig | null> {
       // Normalize scale + center
       const bbox = new THREE.Box3().setFromObject(body);
       const size = bbox.getSize(new THREE.Vector3());
-      const scale = TARGET_HEIGHT / Math.max(0.001, size.y);
+      const scale = BIKE_ONLY_HEIGHT / Math.max(0.001, size.y);
       body.scale.setScalar(scale);
       body.updateMatrixWorld(true);
       const sb = new THREE.Box3().setFromObject(body);
@@ -127,7 +181,7 @@ function cloneRig(t: { wrapper: THREE.Group; frontWheel: THREE.Group; backWheel:
   const body = root.children[0];
   const frontWheel = root.children[1] as THREE.Group;
   const backWheel = root.children[2] as THREE.Group;
-  return { root, body, frontWheel, backWheel };
+  return { root, body, frontWheel, backWheel, combined: false };
 }
 
 /** Spin both wheels by `angle` radians (called per-frame from update). */
