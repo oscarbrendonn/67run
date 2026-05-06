@@ -214,40 +214,18 @@ export class MavGLB {
     this.root.visible = v;
   }
 
-  /** Pose Mav onto a bike: arms forward to handlebars, knees bent on
-   *  pegs, animations paused. Same pose tested in combo-viewer.html. */
+  /** Pose Mav onto a bike. For now we just keep the run animation
+   *  playing — Mav appears running while sitting on the bike, like
+   *  Subway Surfers' Jake on the hoverboard. Bone-level pose changes
+   *  were causing the mesh to deform off-screen. */
   setBikePose() {
     if (!this.loaded || !this.mixer) return;
-    // Pause animation playback so bone overrides aren't overwritten
-    this.mixer.timeScale = 0;
-    const get = (n: string) => this.bones.get(n);
-    const lArm = get("LeftArm"), rArm = get("RightArm");
-    const lFore = get("LeftForeArm"), rFore = get("RightForeArm");
-    const lUpLeg = get("LeftUpLeg"), rUpLeg = get("RightUpLeg");
-    const lLeg = get("LeftLeg"), rLeg = get("RightLeg");
-    if (lArm) {
-      lArm.rotation.set(0, 0, 0);
-      lArm.rotateZ(-1.2);
-      lArm.rotateY(-1.2);
-    }
-    if (rArm) {
-      rArm.rotation.set(0, 0, 0);
-      rArm.rotateZ(1.2);
-      rArm.rotateY(1.2);
-    }
-    if (lFore) lFore.rotation.set(0, 0, -0.4);
-    if (rFore) rFore.rotation.set(0, 0, 0.4);
-    if (lUpLeg) lUpLeg.rotation.set(1.1, 0, 0);
-    if (rUpLeg) rUpLeg.rotation.set(1.1, 0, 0);
-    if (lLeg) lLeg.rotation.set(-1.6, 0, 0);
-    if (rLeg) rLeg.rotation.set(-1.6, 0, 0);
+    this.setState("run");
   }
 
-  /** Reverse setBikePose — resume animation playback. */
+  /** Reverse setBikePose — resume run animation. */
   clearBikePose() {
     if (!this.loaded || !this.mixer) return;
-    this.mixer.timeScale = 1;
-    // Force a fresh setState — animation system will key the bones back
     this.currentState = null;
     this.setState("run");
   }
