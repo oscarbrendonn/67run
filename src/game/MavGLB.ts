@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { ASSET_BASE } from "./AssetBase";
 
-export type MavState = "idle" | "run" | "jump" | "slide" | "dead";
+export type MavState = "idle" | "run" | "jump" | "slide" | "dead" | "bike";
 
 const V = `?v=${__BUILD_VERSION__}`;
 const MODEL_BASE = `${ASSET_BASE}/models/mav-final-rigged.glb${V}`;

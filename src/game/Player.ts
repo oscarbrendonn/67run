@@ -152,15 +152,15 @@ export class Player {
     poseIdle(this.rig);
   }
 
-  /** Mount the bike. Code-level combo: real Mav GLB on top of the
-   *  bike-only GLB. Real Mav visuals + real bike — no Meshy combined
-   *  needed. */
+  /** Mount the bike. Combined Mav-on-bike GLB (V4: side-profile image-to-3D,
+   *  Mav already sitting on the bike, single mesh). Mav stays static, only
+   *  the wheels spin (if separate mesh nodes exist). */
   async startBike() {
     this.state = "bike";
     this.bikeDistanceRemaining = BIKE_DISTANCE_M;
     this.y = 0;
     this.vy = 0;
-    // Hide primitive rig — only the GLB Mav should ride
+    // Hide every other Mav variant — combined GLB is the only visible one
     const hidePrim = (o: THREE.Object3D | undefined) => {
       if (!o) return;
       o.visible = false;
@@ -172,20 +172,33 @@ export class Player {
     hidePrim(this.rig.rightArm);
     hidePrim(this.rig.leftLeg);
     hidePrim(this.rig.rightLeg);
-    // Make sure the GLB Mav is visible — he is the rider
-    if (this.mavGLB?.root) this.mavGLB.root.visible = true;
-    this.mavGLB?.setState("run");
+    if (this.mavGLB?.root) this.mavGLB.root.visible = false;
 
-    // Spawn the bike-only GLB underneath Mav
-    if (!this.bikeRig) {
-      const rig = await loadBike();
-      if (rig) {
-        this.bikeRig = rig;
-        rig.root.position.set(0, 0, 0);
-        this.root.add(rig.root);
+    // Load combined GLB (V4 — Mav sitting on bike, single mesh)
+    if (!this.combinedBike) {
+      const cb = await loadCombinedMavBike();
+      if (cb) {
+        this.combinedBike = cb;
+        cb.position.set(0, 0, 0);
+        this.root.add(cb);
       }
     } else {
-      this.bikeRig.root.visible = true;
+      this.combinedBike.visible = true;
+    }
+    // Fallback to bike-only + GLB Mav if combined fails
+    if (!this.combinedBike) {
+      if (this.mavGLB?.root) this.mavGLB.root.visible = true;
+      this.mavGLB?.setState("run");
+      if (!this.bikeRig) {
+        const rig = await loadBike();
+        if (rig) {
+          this.bikeRig = rig;
+          rig.root.position.set(0, 0, 0);
+          this.root.add(rig.root);
+        }
+      } else {
+        this.bikeRig.root.visible = true;
+      }
     }
   }
 
