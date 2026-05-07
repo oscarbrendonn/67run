@@ -89,24 +89,13 @@ export class Player {
     this.mavGLB.onLoaded(() => {
       const p = this.root.position;
       this.mavGLB!.root.position.set(p.x, p.y, p.z);
-      if (this.mavGLB && this.mavGLB.succeeded) {
-        // GLB succeeded → force-hide primitive (in case the 15s failsafe
-        // already revealed it during a slow load). Without this we ended
-        // up with BOTH characters visible — the bug Oscar saw on the
-        // deployed game.
-        setPrimVisible(false);
-      } else {
-        // GLB failed (parse error / OOM on mobile) → reveal primitive as
-        // a last-resort character so the screen isn't empty.
-        setPrimVisible(true);
-      }
+      // ALWAYS hide primitive — only the 3D Mav GLB ever shows. Oscar
+      // explicitly wants single-character (3D only). If the GLB fails
+      // the screen will be character-less, but that's preferable to the
+      // double-Mav overlap that was happening on slow networks.
+      setPrimVisible(false);
     });
-    // Hard failsafe: if onLoaded never fires within 15s (totally hung
-    // download — happens on bad mobile networks), reveal primitive
-    // anyway. onLoaded re-hides it the moment the GLB does arrive.
-    setTimeout(() => {
-      if (this.mavGLB && !this.mavGLB.loaded) setPrimVisible(true);
-    }, 15000);
+    // No failsafe reveal — primitive must never appear alongside the GLB.
   }
 
   reset() {
