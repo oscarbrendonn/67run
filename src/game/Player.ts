@@ -167,20 +167,34 @@ export class Player {
     hidePrim(this.rig.leftLeg);
     hidePrim(this.rig.rightLeg);
 
-    // Real Mav GLB stays visible — pose his bones onto the bike
-    if (this.mavGLB?.root) this.mavGLB.root.visible = true;
-    this.mavGLB?.setBikePose();
-
-    // Bike-only GLB underneath
-    if (!this.bikeRig) {
-      const rig = await loadBike();
-      if (rig) {
-        this.bikeRig = rig;
-        rig.root.position.set(0, 0, 0);
-        this.root.add(rig.root);
+    // Use the combined Mav-on-bike GLB (Mav already posed on bike).
+    // Hide the regular running Mav GLB while on the bike so they don't
+    // overlap (the combined GLB has its own Mav baked in the riding pose).
+    if (!this.combinedBike) {
+      const combined = await loadCombinedMavBike();
+      if (combined) {
+        this.combinedBike = combined;
+        this.root.add(combined);
       }
+    }
+    if (this.combinedBike) {
+      this.combinedBike.visible = true;
+      // Hide the standalone GLB Mav — combined GLB has Mav inside it
+      if (this.mavGLB?.root) this.mavGLB.root.visible = false;
     } else {
-      this.bikeRig.root.visible = true;
+      // Combined GLB failed to load — fall back to bike-only + animated Mav
+      if (this.mavGLB?.root) this.mavGLB.root.visible = true;
+      this.mavGLB?.setBikePose();
+      if (!this.bikeRig) {
+        const rig = await loadBike();
+        if (rig) {
+          this.bikeRig = rig;
+          rig.root.position.set(0, 0, 0);
+          this.root.add(rig.root);
+        }
+      } else {
+        this.bikeRig.root.visible = true;
+      }
     }
   }
 
@@ -189,6 +203,7 @@ export class Player {
     this.bikeDistanceRemaining = 0;
     this.bikeLeanZ = 0;
     if (this.bikeRig) this.bikeRig.root.visible = false;
+    if (this.combinedBike) this.combinedBike.visible = false;
     // Restore Mav animation playback (clears bike pose)
     this.mavGLB?.clearBikePose();
     if (this.mavGLB?.root) this.mavGLB.root.visible = true;
