@@ -602,14 +602,18 @@ export class World {
     // Front row sits back at 5.5m so there's a 0.45m gap from a 0.55m-radius
     // street tree (centered at 4.0–4.5m). Mid + back tiers spread out to
     // form layered city skyline. No more "tree inside building".
+    // Buildings hug the curb tighter for that Subway-Surfers wall feel.
+    // Front row pulled in by ~0.7m; mid + back also pulled in proportionally.
     const innerEdge =
       rowTier === 0
-        ? TRACK_WIDTH / 2 + 2.0 + Math.random() * 0.3   // 5.5–5.8m from center
+        ? TRACK_WIDTH / 2 + 1.3 + Math.random() * 0.2   // 4.8–5.0m from center
         : rowTier === 1
-        ? TRACK_WIDTH / 2 + 5.0 + Math.random() * 1.2   // 8.5–9.7m from center
-        : TRACK_WIDTH / 2 + 9.5 + Math.random() * 1.8;  // 13–14.8m from center
-    // Apply random rotation BEFORE measuring so bbox reflects rotated width
-    g.rotation.y = (Math.random() - 0.5) * 0.4;
+        ? TRACK_WIDTH / 2 + 4.2 + Math.random() * 1.0   // 7.7–8.7m from center
+        : TRACK_WIDTH / 2 + 8.5 + Math.random() * 1.5;  // 12–13.5m from center
+    // Cut the random rotation way down — was ±11.5° (looked chaotic),
+    // now ±2.5° (subtle skew so they don't all look like a perfect grid
+    // but the row reads as an organized streetwall).
+    g.rotation.y = (Math.random() - 0.5) * 0.085;
     g.updateMatrixWorld(true);
     const tmpBB = new THREE.Box3().setFromObject(g);
     const halfWidth = Math.max(0.5, (tmpBB.max.x - tmpBB.min.x) / 2);
@@ -1081,20 +1085,15 @@ export class World {
         continue;
       }
       this.tunnelCooldown -= gap;
-      // Rare powerup — flying car OR bike. While testing the bike feature
-      // we shorten cadence + bias toward bikes so the player meets one
-      // within the first ~150m. (TODO: revert before main merge.)
+      // Rare powerup — flying car only in the live game. Bike feature is
+      // still being polished (pose work-in-progress) so we don't spawn it
+      // here yet. Re-enable bike spawn once Oscar approves the final pose.
       if (
-        this.spawnedZ < this.lastPowerupZ - 120 - Math.random() * 80 &&
-        Math.random() < 0.7
+        this.spawnedZ < this.lastPowerupZ - 380 - Math.random() * 200 &&
+        Math.random() < 0.4
       ) {
         const lane = Math.floor(Math.random() * 3);
-        // 75% bike, 25% car during the test phase
-        if (Math.random() < 0.75) {
-          this.addBikePowerup(lane, this.spawnedZ);
-        } else {
-          this.addPowerup(lane, this.spawnedZ, 1.8);
-        }
+        this.addPowerup(lane, this.spawnedZ, 1.8);
         this.lastPowerupZ = this.spawnedZ;
       }
       if (Math.random() < 0.22) this.spawnCoinRow(this.spawnedZ);

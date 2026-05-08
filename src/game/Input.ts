@@ -32,10 +32,11 @@ export class Input {
         case "KeyS":
           this.emit({ type: "slide" });
           break;
-        case "KeyB":
-          // Dev cheat — press B to instantly mount the bike
-          this.emit({ type: "bike" });
-          break;
+        // KeyB (bike cheat) disabled in main game until pose is finalized.
+        // Re-enable when bike feature ships:
+        // case "KeyB":
+        //   this.emit({ type: "bike" });
+        //   break;
       }
     });
 
