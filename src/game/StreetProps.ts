@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { buildFlagPole } from "./Flags";
 import { loadFlagModel } from "./FlagLoader";
-import { loadTreeModel, loadBushModel, loadHedgeModel } from "./TreeLoader";
+import { loadTreeModel, loadBushModel, loadHedgeModel, loadPalmModel, loadBambooModel } from "./TreeLoader";
 import type { Theme } from "./Themes";
 
 /** Build a themed "prop" piece — lamppost, tree, sign — to be placed along the track. */
@@ -21,8 +21,15 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       });
       return placeholder;
     }
-    case "palm":
-      return buildPalmTree();
+    case "palm": {
+      const placeholder = buildPalmTree();
+      loadPalmModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "pine":
       return buildPineTree();
     case "cherry":
@@ -41,8 +48,15 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       return buildBistroSign();
     case "parisLamp":
       return buildParisLamp();
-    case "bamboo":
-      return buildBamboo();
+    case "bamboo": {
+      const placeholder = buildBamboo();
+      loadBambooModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "taxi":
       return buildTaxi();
     case "flag": {
@@ -118,7 +132,9 @@ function kindsForTheme(theme: Theme): PropKind[] {
   // signs, hedges fill the visual interest. Oscar: "ağaçlar çok fazla".
   switch (theme.id) {
     case "usa":
-      return ["lamp", "tree", "hedge", "bench", "lamp", "hydrant", "sign", "lamp", "tree", "hedge", "bench", "lamp", "bushCluster", "lamp", "hedge", "bushCluster"];
+      // Extra benches sprinkled at curb corners — Oscar wanted seating in
+      // the empty spaces between buildings.
+      return ["lamp", "tree", "bench", "hedge", "lamp", "bench", "hydrant", "bushCluster", "tree", "bench", "lamp", "hedge", "bench", "bushCluster", "lamp", "tree"];
     case "brazil":
       return ["palm", "lamp", "hedge", "bench", "palm", "lamp", "bushCluster", "tree", "bench", "palm", "hedge", "lamp", "bushCluster", "palm", "lamp", "hedge"];
     case "france":

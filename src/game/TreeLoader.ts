@@ -163,3 +163,17 @@ export async function loadHedgeModel(themeId: string): Promise<THREE.Group | nul
   if (!species) return null;
   return loadGlb(species, "trees", HEDGE_HEIGHT);
 }
+
+/** 3D palm tree — loads /models/trees/palm_tropical.glb (Meshy-generated).
+ *  Returns null on miss so caller falls back to primitive buildPalmTree. */
+const PALM_HEIGHT = 4.5;
+export async function loadPalmModel(themeId: string): Promise<THREE.Group | null> {
+  // Same model for all tropical themes (brazil/uae/egypt/aus)
+  return loadGlb("palm_tropical", "trees", PALM_HEIGHT);
+}
+
+/** 3D bamboo cluster — loads /models/trees/bamboo_brazil.glb. */
+const BAMBOO_HEIGHT = 3.5;
+export async function loadBambooModel(themeId: string): Promise<THREE.Group | null> {
+  return loadGlb("bamboo_brazil", "trees", BAMBOO_HEIGHT);
+}
