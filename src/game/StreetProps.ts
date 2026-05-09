@@ -91,15 +91,6 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       });
       return placeholder;
     }
-    case "hedge": {
-      const placeholder = buildHedge(theme);
-      loadHedgeModel(theme.id).then((glb) => {
-        if (!glb) return;
-        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
-        placeholder.add(glb);
-      });
-      return placeholder;
-    }
   }
 }
 
@@ -124,8 +115,7 @@ type PropKind =
   | "snowman"
   | "firebarrel"
   | "obelisk"
-  | "bushCluster"
-  | "hedge";
+  | "bushCluster";
 
 function kindsForTheme(theme: Theme): PropKind[] {
   // Tree slots cut roughly in half across themes — more lamps, benches,
@@ -134,33 +124,33 @@ function kindsForTheme(theme: Theme): PropKind[] {
     case "usa":
       // Extra benches sprinkled at curb corners — Oscar wanted seating in
       // the empty spaces between buildings.
-      return ["lamp", "tree", "bench", "hedge", "lamp", "bench", "hydrant", "bushCluster", "tree", "bench", "lamp", "hedge", "bench", "bushCluster", "lamp", "tree"];
+      return ["lamp", "tree", "bench", "bushCluster", "lamp", "bench", "hydrant", "bushCluster", "tree", "bench", "lamp", "bushCluster", "bench", "bushCluster", "lamp", "tree"];
     case "brazil":
-      return ["palm", "lamp", "hedge", "bench", "palm", "lamp", "bushCluster", "tree", "bench", "palm", "hedge", "lamp", "bushCluster", "palm", "lamp", "hedge"];
+      return ["palm", "lamp", "bushCluster", "bench", "palm", "lamp", "bushCluster", "tree", "bench", "palm", "bushCluster", "lamp", "bushCluster", "palm", "lamp", "bushCluster"];
     case "france":
-      return ["parisLamp", "bench", "bistro", "hedge", "parisLamp", "bushCluster", "bistro", "tree", "bench", "parisLamp", "hedge", "tree", "bistro", "parisLamp", "bench", "bistro"];
+      return ["parisLamp", "bench", "bistro", "bushCluster", "parisLamp", "bushCluster", "bistro", "tree", "bench", "parisLamp", "bushCluster", "tree", "bistro", "parisLamp", "bench", "bistro"];
     case "japan":
-      return ["lantern", "bench", "torii", "lantern", "cherry", "hedge", "lantern", "lantern", "bushCluster", "lantern", "cherry", "torii", "bamboo", "lantern", "bench", "lantern"];
+      return ["lantern", "bench", "torii", "lantern", "cherry", "bushCluster", "lantern", "lantern", "bushCluster", "lantern", "cherry", "torii", "bamboo", "lantern", "bench", "lantern"];
     case "turkey":
-      return ["lamp", "bench", "lantern", "hedge", "lamp", "bushCluster", "sign", "lamp", "tree", "hedge", "bench", "lamp", "lantern", "lamp", "bench", "tree"];
+      return ["lamp", "bench", "lantern", "bushCluster", "lamp", "bushCluster", "sign", "lamp", "tree", "bushCluster", "bench", "lamp", "lantern", "lamp", "bench", "tree"];
     case "uk":
-      return ["parisLamp", "bench", "hedge", "tree", "parisLamp", "bench", "bistro", "hedge", "parisLamp", "bench", "lamp", "tree", "bistro", "parisLamp", "bench", "hedge"];
+      return ["parisLamp", "bench", "bushCluster", "tree", "parisLamp", "bench", "bistro", "bushCluster", "parisLamp", "bench", "lamp", "tree", "bistro", "parisLamp", "bench", "bushCluster"];
     case "russia":
       return ["snowpine", "bench", "snowman", "snowpine", "bear", "firebarrel", "snowpine", "bench", "snowpine", "snowman", "lamp", "lamp", "snowpine", "bench", "snowpine", "snowman"];
     case "uae":
-      return ["palm", "lamp", "hedge", "palm", "lamp", "bench", "sign", "palm", "bench", "lamp", "hedge", "palm", "lamp", "palm", "bench", "lamp"];
+      return ["palm", "lamp", "bushCluster", "palm", "lamp", "bench", "sign", "palm", "bench", "lamp", "bushCluster", "palm", "lamp", "palm", "bench", "lamp"];
     case "egypt":
-      return ["palm", "obelisk", "palm", "hedge", "obelisk", "bench", "lamp", "palm", "bench", "lamp", "hedge", "palm", "obelisk", "palm", "bench", "obelisk"];
+      return ["palm", "obelisk", "palm", "bushCluster", "obelisk", "bench", "lamp", "palm", "bench", "lamp", "bushCluster", "palm", "obelisk", "palm", "bench", "obelisk"];
     case "italy":
-      return ["lamp", "tree", "bench", "bistro", "hedge", "lamp", "lamp", "bench", "bench", "tree", "bistro", "hedge", "lamp", "bench", "lamp", "bistro"];
+      return ["lamp", "tree", "bench", "bistro", "bushCluster", "lamp", "lamp", "bench", "bench", "tree", "bistro", "bushCluster", "lamp", "bench", "lamp", "bistro"];
     case "australia":
-      return ["palm", "lamp", "bench", "lamp", "hedge", "palm", "tree", "bench", "bench", "palm", "lamp", "hedge", "lamp", "palm", "bench", "lamp"];
+      return ["palm", "lamp", "bench", "lamp", "bushCluster", "palm", "tree", "bench", "bench", "palm", "lamp", "bushCluster", "lamp", "palm", "bench", "lamp"];
     case "china":
-      return ["lantern", "bench", "lamp", "lantern", "hedge", "lamp", "bench", "lantern", "bench", "lamp", "lantern", "hedge", "bench", "lantern", "lamp", "lantern"];
+      return ["lantern", "bench", "lamp", "lantern", "bushCluster", "lamp", "bench", "lantern", "bench", "lamp", "lantern", "bushCluster", "bench", "lantern", "lamp", "lantern"];
     case "korea":
-      return ["lamp", "tree", "bench", "lantern", "hedge", "lamp", "lamp", "bench", "sign", "lamp", "tree", "hedge", "bench", "lantern", "lamp", "lamp"];
+      return ["lamp", "tree", "bench", "lantern", "bushCluster", "lamp", "lamp", "bench", "sign", "lamp", "tree", "bushCluster", "bench", "lantern", "lamp", "lamp"];
     default:
-      return ["lamp", "tree", "sign", "bench", "hedge"];
+      return ["lamp", "tree", "sign", "bench", "bushCluster"];
   }
 }
 
