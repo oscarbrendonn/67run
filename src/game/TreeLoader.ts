@@ -73,7 +73,7 @@ export async function loadTreeModel(themeId: string): Promise<THREE.Group | null
 /** Bush GLBs — generic species used per theme cluster. Falls back to
  *  primitive bushCluster when GLB unavailable or theme not mapped. */
 const BUSH_BY_THEME: Record<string, string> = {
-  usa: "bush_round",
+  usa: "bush_usa",          // Meshy-generated NYC sidewalk shrub cluster
   uk: "bush_round",
   france: "bush_round",
   italy: "bush_round",
