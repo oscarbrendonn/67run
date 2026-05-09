@@ -201,14 +201,66 @@ const PARIS_LAMP_HEIGHT = 3.6;
 const LANTERN_HEIGHT = 2.4;
 const BISTRO_HEIGHT = 2.6;
 
-export async function loadParisLampModel(): Promise<THREE.Group | null> {
-  return loadGlb("lamp_paris", "props", PARIS_LAMP_HEIGHT);
+// Per-theme variants — Oscar wanted "her yerin kendine özgün şeyleri".
+// Japan-style lantern was leaking into Turkey/China/Korea, French bistro
+// was leaking into Italy/UK. Now each theme fetches its own GLB.
+const PARIS_LAMP_BY_THEME: Record<string, string> = {
+  france: "lamp_paris",
+  uk: "lamp_uk",
+};
+const LANTERN_BY_THEME: Record<string, string> = {
+  japan: "lantern_japan",
+  china: "lantern_china",
+  turkey: "lantern_turkey",
+  korea: "lantern_korea",
+};
+const BISTRO_BY_THEME: Record<string, string> = {
+  france: "bistro_france",
+  italy: "bistro_italy",
+};
+
+export async function loadParisLampModel(themeId: string): Promise<THREE.Group | null> {
+  const species = PARIS_LAMP_BY_THEME[themeId] ?? "lamp_paris";
+  return loadGlb(species, "props", PARIS_LAMP_HEIGHT);
 }
 
-export async function loadLanternModel(): Promise<THREE.Group | null> {
-  return loadGlb("lantern_japan", "props", LANTERN_HEIGHT);
+export async function loadLanternModel(themeId: string): Promise<THREE.Group | null> {
+  const species = LANTERN_BY_THEME[themeId] ?? "lantern_japan";
+  return loadGlb(species, "props", LANTERN_HEIGHT);
 }
 
-export async function loadBistroModel(): Promise<THREE.Group | null> {
-  return loadGlb("bistro_france", "props", BISTRO_HEIGHT);
+export async function loadBistroModel(themeId: string): Promise<THREE.Group | null> {
+  const species = BISTRO_BY_THEME[themeId] ?? "bistro_france";
+  return loadGlb(species, "props", BISTRO_HEIGHT);
+}
+
+// Single-theme primitives upgraded to 3D
+const CHERRY_HEIGHT = 4.2;
+const TORII_HEIGHT = 3.8;
+const BEAR_HEIGHT = 2.0;
+const SNOWMAN_HEIGHT = 1.4;
+const SNOWPINE_HEIGHT = 4.0;
+const FIREBARREL_HEIGHT = 1.4;
+const OBELISK_HEIGHT = 4.5;
+
+export async function loadCherryModel(): Promise<THREE.Group | null> {
+  return loadGlb("cherry_japan", "props", CHERRY_HEIGHT);
+}
+export async function loadToriiModel(): Promise<THREE.Group | null> {
+  return loadGlb("torii_japan", "props", TORII_HEIGHT);
+}
+export async function loadBearModel(): Promise<THREE.Group | null> {
+  return loadGlb("bear_russia", "props", BEAR_HEIGHT);
+}
+export async function loadSnowmanModel(): Promise<THREE.Group | null> {
+  return loadGlb("snowman_russia", "props", SNOWMAN_HEIGHT);
+}
+export async function loadSnowpineModel(): Promise<THREE.Group | null> {
+  return loadGlb("snowpine_russia", "props", SNOWPINE_HEIGHT);
+}
+export async function loadFirebarrelModel(): Promise<THREE.Group | null> {
+  return loadGlb("firebarrel_russia", "props", FIREBARREL_HEIGHT);
+}
+export async function loadObeliskModel(): Promise<THREE.Group | null> {
+  return loadGlb("obelisk_egypt", "props", OBELISK_HEIGHT);
 }

@@ -1,7 +1,14 @@
 import * as THREE from "three";
 import { buildFlagPole } from "./Flags";
 import { loadFlagModel } from "./FlagLoader";
-import { loadTreeModel, loadBushModel, loadHedgeModel, loadPalmModel, loadBambooModel, loadLampModel, loadBenchModel, loadHydrantModel, loadParisLampModel, loadLanternModel, loadBistroModel } from "./TreeLoader";
+import {
+  loadTreeModel, loadBushModel, loadHedgeModel, loadPalmModel, loadBambooModel,
+  loadLampModel, loadBenchModel, loadHydrantModel,
+  loadParisLampModel, loadLanternModel, loadBistroModel,
+  loadCherryModel, loadToriiModel,
+  loadBearModel, loadSnowmanModel, loadSnowpineModel, loadFirebarrelModel,
+  loadObeliskModel,
+} from "./TreeLoader";
 import type { Theme } from "./Themes";
 
 /** Build a themed "prop" piece — lamppost, tree, sign — to be placed along the track. */
@@ -39,8 +46,15 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
     }
     case "pine":
       return buildPineTree();
-    case "cherry":
-      return buildCherryBlossom();
+    case "cherry": {
+      const placeholder = buildCherryBlossom();
+      loadCherryModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "sign":
       return buildSign(theme);
     case "bench": {
@@ -61,11 +75,18 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       });
       return placeholder;
     }
-    case "torii":
-      return buildTorii();
+    case "torii": {
+      const placeholder = buildTorii();
+      loadToriiModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "lantern": {
       const placeholder = buildPaperLantern();
-      loadLanternModel().then((glb) => {
+      loadLanternModel(theme.id).then((glb) => {
         if (!glb) return;
         while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
         placeholder.add(glb);
@@ -74,7 +95,7 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
     }
     case "bistro": {
       const placeholder = buildBistroSign();
-      loadBistroModel().then((glb) => {
+      loadBistroModel(theme.id).then((glb) => {
         if (!glb) return;
         while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
         placeholder.add(glb);
@@ -83,7 +104,7 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
     }
     case "parisLamp": {
       const placeholder = buildParisLamp();
-      loadParisLampModel().then((glb) => {
+      loadParisLampModel(theme.id).then((glb) => {
         if (!glb) return;
         while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
         placeholder.add(glb);
@@ -114,16 +135,51 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       });
       return placeholder;
     }
-    case "bear":
-      return buildBear();
-    case "snowpine":
-      return buildSnowyPine();
-    case "snowman":
-      return buildSnowman();
-    case "firebarrel":
-      return buildFireBarrel();
-    case "obelisk":
-      return buildSideObelisk();
+    case "bear": {
+      const placeholder = buildBear();
+      loadBearModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "snowpine": {
+      const placeholder = buildSnowyPine();
+      loadSnowpineModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "snowman": {
+      const placeholder = buildSnowman();
+      loadSnowmanModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "firebarrel": {
+      const placeholder = buildFireBarrel();
+      loadFirebarrelModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "obelisk": {
+      const placeholder = buildSideObelisk();
+      loadObeliskModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "bushCluster": {
       const placeholder = buildBushCluster(theme);
       loadBushModel(theme.id).then((glb) => {
