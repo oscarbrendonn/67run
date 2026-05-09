@@ -55,8 +55,6 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       });
       return placeholder;
     }
-    case "sign":
-      return buildSign(theme);
     case "bench": {
       const placeholder = buildBench(theme);
       loadBenchModel(theme.id).then((glb) => {
@@ -198,7 +196,6 @@ type PropKind =
   | "palm"
   | "pine"
   | "cherry"
-  | "sign"
   | "bench"
   | "hydrant"
   | "torii"
@@ -230,13 +227,13 @@ function kindsForTheme(theme: Theme): PropKind[] {
     case "japan":
       return ["lantern", "bench", "torii", "lantern", "cherry", "bushCluster", "lantern", "lantern", "bushCluster", "lantern", "cherry", "torii", "bamboo", "lantern", "bench", "lantern"];
     case "turkey":
-      return ["lamp", "bench", "lantern", "bushCluster", "lamp", "bushCluster", "sign", "lamp", "tree", "bushCluster", "bench", "lamp", "lantern", "lamp", "bench", "tree"];
+      return ["lamp", "bench", "lantern", "bushCluster", "lamp", "bushCluster", "bushCluster", "lamp", "tree", "bushCluster", "bench", "lamp", "lantern", "lamp", "bench", "tree"];
     case "uk":
       return ["parisLamp", "bench", "bushCluster", "tree", "parisLamp", "bench", "bistro", "bushCluster", "parisLamp", "bench", "lamp", "tree", "bistro", "parisLamp", "bench", "bushCluster"];
     case "russia":
       return ["snowpine", "bench", "snowman", "snowpine", "bear", "firebarrel", "snowpine", "bench", "snowpine", "snowman", "lamp", "lamp", "snowpine", "bench", "snowpine", "snowman"];
     case "uae":
-      return ["palm", "lamp", "bushCluster", "palm", "lamp", "bench", "sign", "palm", "bench", "lamp", "bushCluster", "palm", "lamp", "palm", "bench", "lamp"];
+      return ["palm", "lamp", "bushCluster", "palm", "lamp", "bench", "bushCluster", "palm", "bench", "lamp", "bushCluster", "palm", "lamp", "palm", "bench", "lamp"];
     case "egypt":
       return ["palm", "obelisk", "palm", "bushCluster", "obelisk", "bench", "lamp", "palm", "bench", "lamp", "bushCluster", "palm", "obelisk", "palm", "bench", "obelisk"];
     case "italy":
@@ -246,9 +243,9 @@ function kindsForTheme(theme: Theme): PropKind[] {
     case "china":
       return ["lantern", "bench", "lamp", "lantern", "bushCluster", "lamp", "bench", "lantern", "bench", "lamp", "lantern", "bushCluster", "bench", "lantern", "lamp", "lantern"];
     case "korea":
-      return ["lamp", "tree", "bench", "lantern", "bushCluster", "lamp", "lamp", "bench", "sign", "lamp", "tree", "bushCluster", "bench", "lantern", "lamp", "lamp"];
+      return ["lamp", "tree", "bench", "lantern", "bushCluster", "lamp", "lamp", "bench", "bushCluster", "lamp", "tree", "bushCluster", "bench", "lantern", "lamp", "lamp"];
     default:
-      return ["lamp", "tree", "sign", "bench", "bushCluster"];
+      return ["lamp", "tree", "bushCluster", "bench", "bushCluster"];
   }
 }
 
