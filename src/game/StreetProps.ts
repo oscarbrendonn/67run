@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { buildFlagPole } from "./Flags";
 import { loadFlagModel } from "./FlagLoader";
-import { loadTreeModel, loadBushModel, loadHedgeModel, loadPalmModel, loadBambooModel } from "./TreeLoader";
+import { loadTreeModel, loadBushModel, loadHedgeModel, loadPalmModel, loadBambooModel, loadLampModel, loadBenchModel, loadHydrantModel } from "./TreeLoader";
 import type { Theme } from "./Themes";
 
 /** Build a themed "prop" piece — lamppost, tree, sign — to be placed along the track. */
@@ -9,8 +9,15 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
   const kinds = kindsForTheme(theme);
   const kind = kinds[slot % kinds.length];
   switch (kind) {
-    case "lamp":
-      return buildLamppost(theme);
+    case "lamp": {
+      const placeholder = buildLamppost(theme);
+      loadLampModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "tree": {
       // Primitive placeholder, lazy-swap with Meshy GLB tree per theme
       const placeholder = buildTree(theme);
@@ -36,10 +43,24 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
       return buildCherryBlossom();
     case "sign":
       return buildSign(theme);
-    case "bench":
-      return buildBench(theme);
-    case "hydrant":
-      return buildHydrant();
+    case "bench": {
+      const placeholder = buildBench(theme);
+      loadBenchModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "hydrant": {
+      const placeholder = buildHydrant();
+      loadHydrantModel(theme.id).then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "torii":
       return buildTorii();
     case "lantern":

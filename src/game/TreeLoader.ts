@@ -177,3 +177,22 @@ const BAMBOO_HEIGHT = 3.5;
 export async function loadBambooModel(themeId: string): Promise<THREE.Group | null> {
   return loadGlb("bamboo_brazil", "trees", BAMBOO_HEIGHT);
 }
+
+// === Street furniture (lamp, bench, hydrant) — Meshy text-to-3D ===
+// All currently NYC-flavored; reused across themes until per-theme variants
+// land. Heights match the original primitive proportions.
+const LAMP_HEIGHT = 3.2;
+const BENCH_HEIGHT = 0.95;
+const HYDRANT_HEIGHT = 0.9;
+
+export async function loadLampModel(themeId: string): Promise<THREE.Group | null> {
+  return loadGlb("lamp_nyc", "props", LAMP_HEIGHT);
+}
+
+export async function loadBenchModel(themeId: string): Promise<THREE.Group | null> {
+  return loadGlb("bench_nyc", "props", BENCH_HEIGHT);
+}
+
+export async function loadHydrantModel(themeId: string): Promise<THREE.Group | null> {
+  return loadGlb("hydrant_nyc", "props", HYDRANT_HEIGHT);
+}
