@@ -196,3 +196,19 @@ export async function loadBenchModel(themeId: string): Promise<THREE.Group | nul
 export async function loadHydrantModel(themeId: string): Promise<THREE.Group | null> {
   return loadGlb("hydrant_nyc", "props", HYDRANT_HEIGHT);
 }
+
+const PARIS_LAMP_HEIGHT = 3.6;
+const LANTERN_HEIGHT = 2.4;
+const BISTRO_HEIGHT = 2.6;
+
+export async function loadParisLampModel(): Promise<THREE.Group | null> {
+  return loadGlb("lamp_paris", "props", PARIS_LAMP_HEIGHT);
+}
+
+export async function loadLanternModel(): Promise<THREE.Group | null> {
+  return loadGlb("lantern_japan", "props", LANTERN_HEIGHT);
+}
+
+export async function loadBistroModel(): Promise<THREE.Group | null> {
+  return loadGlb("bistro_france", "props", BISTRO_HEIGHT);
+}

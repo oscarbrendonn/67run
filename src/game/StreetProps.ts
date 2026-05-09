@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { buildFlagPole } from "./Flags";
 import { loadFlagModel } from "./FlagLoader";
-import { loadTreeModel, loadBushModel, loadHedgeModel, loadPalmModel, loadBambooModel, loadLampModel, loadBenchModel, loadHydrantModel } from "./TreeLoader";
+import { loadTreeModel, loadBushModel, loadHedgeModel, loadPalmModel, loadBambooModel, loadLampModel, loadBenchModel, loadHydrantModel, loadParisLampModel, loadLanternModel, loadBistroModel } from "./TreeLoader";
 import type { Theme } from "./Themes";
 
 /** Build a themed "prop" piece — lamppost, tree, sign — to be placed along the track. */
@@ -63,12 +63,33 @@ export function buildStreetProp(theme: Theme, slot: number): THREE.Group {
     }
     case "torii":
       return buildTorii();
-    case "lantern":
-      return buildPaperLantern();
-    case "bistro":
-      return buildBistroSign();
-    case "parisLamp":
-      return buildParisLamp();
+    case "lantern": {
+      const placeholder = buildPaperLantern();
+      loadLanternModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "bistro": {
+      const placeholder = buildBistroSign();
+      loadBistroModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
+    case "parisLamp": {
+      const placeholder = buildParisLamp();
+      loadParisLampModel().then((glb) => {
+        if (!glb) return;
+        while (placeholder.children.length > 0) placeholder.remove(placeholder.children[0]);
+        placeholder.add(glb);
+      });
+      return placeholder;
+    }
     case "bamboo": {
       const placeholder = buildBamboo();
       loadBambooModel(theme.id).then((glb) => {
