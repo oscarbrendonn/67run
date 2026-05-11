@@ -122,6 +122,9 @@ export class World {
   scene: THREE.Scene;
   ground: THREE.Group;
   segments: THREE.Group[] = [];
+  /** Segments whose road-detail still needs rebuilding for the new theme.
+   *  Drained 1-2 per frame in `scroll()` so theme switches don't freeze. */
+  private roadDetailRebuildQueue: THREE.Group[] = [];
   groundMat: THREE.MeshStandardMaterial;
   stripeMat: THREE.MeshStandardMaterial;
   grassMat: THREE.MeshStandardMaterial;
@@ -677,23 +680,12 @@ export class World {
     this.theme = theme;
     // Apply CACHED road texture if available (no re-fetch lag)
     this.applyRoadTexture(theme);
-    // Rebuild per-segment 3D road detail (cobble / slabs / sand / etc.)
-    // for the new country. Each segment keeps a single "road-detail"
-    // group that we strip and recreate. InstancedMesh keeps this fast.
-    for (const seg of this.segments) {
-      const old = seg.getObjectByName("road-detail");
-      if (old) {
-        seg.remove(old);
-        old.traverse((c) => {
-          const im = c as THREE.InstancedMesh;
-          if (im.isInstancedMesh) {
-            im.geometry.dispose();
-            (im.material as THREE.Material).dispose?.();
-          }
-        });
-      }
-      addRoadDetail3D(seg, theme.id);
-    }
+    // Per-segment 3D road detail (cobble / slabs / sand / etc.) used to
+    // rebuild ALL segments in one tick — that was the visible freeze when
+    // crossing a country boundary. Now we queue them up and rebuild
+    // 1-2 per frame in the regular `scroll` tick, so the work is spread
+    // out invisibly.
+    this.roadDetailRebuildQueue = this.segments.slice();
     // Preload theme obstacles + buildings IMMEDIATELY (not via requestIdle
     // — that callback never fires during 60fps gameplay, so GLBs were
     // never starting to download until the player was already deep into
@@ -897,6 +889,26 @@ export class World {
 
   scroll(dz: number, playerZ: number) {
     this.spawnedZ += dz;
+    // Drain a couple of road-detail rebuilds per frame so theme switches
+    // don't freeze the main thread. Queue is filled in setTheme().
+    if (this.roadDetailRebuildQueue.length > 0) {
+      const budget = 2; // segments per frame
+      for (let i = 0; i < budget && this.roadDetailRebuildQueue.length > 0; i++) {
+        const seg = this.roadDetailRebuildQueue.shift()!;
+        const old = seg.getObjectByName("road-detail");
+        if (old) {
+          seg.remove(old);
+          old.traverse((c) => {
+            const im = c as THREE.InstancedMesh;
+            if (im.isInstancedMesh) {
+              im.geometry.dispose();
+              (im.material as THREE.Material).dispose?.();
+            }
+          });
+        }
+        addRoadDetail3D(seg, this.theme.id);
+      }
+    }
     // Road segments scroll back as the player runs forward.
     for (const s of this.segments) {
       s.position.z += dz;

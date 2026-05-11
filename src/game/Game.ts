@@ -83,6 +83,12 @@ export class Game {
   private level = 1;
   private themeIndex = 0;
   private nextLandmarkZ = 0;
+  /** Once the player gets within `PRE_SPAWN_DISTANCE` of the next country
+   *  boundary, we spawn that country's landmark + welcome flags way ahead
+   *  so the next country is visible from far away (Oscar: "uzaktan
+   *  gözükecek, bir anda değişmesin"). Set true after pre-spawn, cleared
+   *  on the actual theme switch. */
+  private nextThemePreSpawned = false;
   /** Resolves once the initial theme's GLBs are cached. main.ts awaits
    *  this before calling start() so the player lands in 3D, not in a
    *  primitive scene that swaps to 3D over the first few seconds. */
@@ -487,19 +493,37 @@ export class Game {
   }
 
   private checkThemeSwitch() {
-    // Switch theme every SEGMENT_DISTANCE
-    const target = Math.floor(this.distance / SEGMENT_DISTANCE) % THEMES.length;
+    const SEG = SEGMENT_DISTANCE;
+    // Distance into the current segment (0..SEG)
+    const inSegment = this.distance % SEG;
+    const distToBoundary = SEG - inSegment;
+
+    // Pre-spawn next country's landmark + welcome flags while the player
+    // is still in the current country, so the upcoming city skyline rises
+    // out of the fog from FAR away instead of popping in at the boundary.
+    // Fires once per segment, ~180m before the boundary (well inside fog
+    // range but far enough that the landmark visibly approaches).
+    const PRE_SPAWN_DISTANCE = 180;
+    if (!this.nextThemePreSpawned && distToBoundary < PRE_SPAWN_DISTANCE) {
+      const nextIdx = (this.themeIndex + 1) % THEMES.length;
+      const next = THEMES[nextIdx];
+      // Landmark sits ~250m ahead of the player; once the player crosses
+      // the boundary (in ~180m), it's 70m ahead — same final approach as
+      // the old behaviour, but visible during the build-up.
+      this.world.spawnLandmark(next, -(distToBoundary + 70), -1);
+      // Welcome-gate flags right at the country line.
+      this.world.spawnFlagPair(next, -distToBoundary);
+      this.nextThemePreSpawned = true;
+    }
+
+    // Actual theme switch when the player crosses the boundary
+    const target = Math.floor(this.distance / SEG) % THEMES.length;
     if (target !== this.themeIndex) {
       this.themeIndex = target;
+      this.nextThemePreSpawned = false;
       this.applyTheme(THEMES[target]);
-      // ONE landmark for the new country, far ahead, off to one side.
-      this.nextLandmarkZ = -130;
-      this.world.spawnLandmark(THEMES[target], this.nextLandmarkZ, -1);
+      // Landmark + flags already spawned ahead by the pre-spawn block.
       this.nextLandmarkZ = -10000;
-      // Welcome-gate: flag pair at ~70m ahead so the player runs THROUGH
-      // the flags as they enter the new country. (Flags removed from
-      // periodic props — Oscar: "sadece ülkeye girerken olacak.")
-      this.world.spawnFlagPair(THEMES[target], -70);
     }
   }
 
