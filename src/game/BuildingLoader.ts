@@ -84,11 +84,13 @@ const TARGET_HEIGHT: Record<string, number> = {
   egypt_market: 6,
   egypt_tower: 28,              // bumped 18 → 20
   // ITALY — Roma palazzo / basilica / villa
-  italy_palazzo: 22,
-  italy_basilica: 30,
-  italy_villa: 14,
-  italy_townhouse: 16,
-  italy_trattoria: 8,
+  italy_palazzo: 28,    // bumped 22 → 28 for taller Rome skyline
+  italy_basilica: 42,   // bumped 30 → 42 — back-row filler so the sky-void
+                        // behind houses isn't visible. Oscar: "arkadaki
+                        // siyahlık gözüküyor, uzun Roma evleri yapsak".
+  italy_villa: 18,      // bumped 14 → 18
+  italy_townhouse: 20,  // bumped 16 → 20
+  italy_trattoria: 12,  // bumped 8 → 12
   // AUSTRALIA — Sydney harbour buildings
   australia_harbor: 14,
   australia_glasstower: 32,
@@ -269,7 +271,9 @@ export const THEME_BUILDINGS: Record<string, string[]> = {
   uk: ["uk_victorian", "uk_georgian", "uk_pub", "uk_tower", "uk_tubestation"],
   russia: ["russia_stalinist", "russia_oniondome", "russia_dacha", "russia_palace", "russia_khrushchyovka", "russia_metro"],
   uae: ["uae_glasstower", "uae_souk", "uae_grandmosque", "uae_villa"],
-  egypt: ["egypt_apartment", "egypt_mosque", "egypt_steppyramid", "egypt_temple", "egypt_tower"],
+  // egypt_tower pulled — it was the tall red building Oscar flagged as
+  // out-of-character. Stays as back-row only via BACK_ROW_BUILDING below.
+  egypt: ["egypt_apartment", "egypt_mosque", "egypt_steppyramid", "egypt_temple"],
   // New countries — full 5-building rotation per country.
   italy: ["italy_palazzo", "italy_basilica", "italy_villa", "italy_townhouse", "italy_trattoria"],
   australia: ["australia_harbor", "australia_glasstower", "australia_terracehouse", "australia_warehouse", "australia_lighthouse"],
@@ -288,7 +292,7 @@ const TALL_BUILDINGS: Record<string, string[]> = {
   uk: ["uk_victorian", "uk_georgian", "uk_tower", "uk_pub", "uk_tubestation"],
   russia: ["russia_stalinist", "russia_oniondome", "russia_palace", "russia_khrushchyovka"],
   uae: ["uae_glasstower", "uae_grandmosque", "uae_villa", "uae_souk"],
-  egypt: ["egypt_apartment", "egypt_mosque", "egypt_temple", "egypt_tower"],
+  egypt: ["egypt_apartment", "egypt_mosque", "egypt_temple"],
   // Full 5-building front-row pool for each new country so every Meshy
   // GLB gets used (was 3 — meant 2 buildings would never spawn at the
   // curb, leaving Oscar with primitive-looking gaps).

@@ -23,8 +23,9 @@ const TARGET_HEIGHT: Record<string, number> = {
   uk_bigben: 40,
   russia_basil: 30,
   uae_burj: 60,
-  egypt_pyramids: 28,
-  italy_colosseum: 26,
+  egypt_pyramids: 38,    // bumped 28 — Oscar: "piramidi yapmamışsın
+                         // herhalde", was too short to read as iconic
+  italy_colosseum: 34,   // bumped 26 — same reason, dramatic landmark
   australia_opera: 22,
   china_pearl: 50,
   korea_seoultower: 38,
