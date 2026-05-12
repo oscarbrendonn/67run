@@ -1098,21 +1098,15 @@ export class World {
         continue;
       }
       this.tunnelCooldown -= gap;
-      // Rare powerup — flying car OR bike. Subway-Surfers style: jetpack
-      // (flying car) appears every ~500m, bike powerup is rarer (~40%) so
-      // each ride feels special. Re-enabled after Oscar's manual pose
-      // approval (legs/arms/hand bones baked into mav-on-bike.glb).
+      // Rare powerup — flying car only in the live game. Bike feature is
+      // still being polished (pose work-in-progress) so we don't spawn it
+      // here yet. Re-enable bike spawn once Oscar approves the final pose.
       if (
         this.spawnedZ < this.lastPowerupZ - 380 - Math.random() * 200 &&
         Math.random() < 0.4
       ) {
         const lane = Math.floor(Math.random() * 3);
-        // 35% chance of bike, 65% chance of flying car
-        if (Math.random() < 0.35) {
-          this.addBikePowerup(lane, this.spawnedZ);
-        } else {
-          this.addPowerup(lane, this.spawnedZ, 1.8);
-        }
+        this.addPowerup(lane, this.spawnedZ, 1.8);
         this.lastPowerupZ = this.spawnedZ;
       }
       if (Math.random() < 0.22) this.spawnCoinRow(this.spawnedZ);
