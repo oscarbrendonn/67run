@@ -17,7 +17,9 @@ const TREE_BY_THEME: Record<string, string> = {
   russia: "birch_russia",
 };
 
-const TARGET_HEIGHT = 4.0; // Sidewalk-scale tree height (~4m)
+// Smaller than before (was 4.0) so the canopy doesn't spill into the road
+// or into building walls — Oscar flagged trees clipping both.
+const TARGET_HEIGHT = 3.0;
 const loader = new GLTFLoader();
 const cache = new Map<string, THREE.Group>();
 const inflight = new Map<string, Promise<THREE.Group | null>>();

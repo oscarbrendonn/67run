@@ -530,12 +530,13 @@ export class World {
     // Heavy Z jitter so props don't form a perfect dotted line along the
     // road. Some hit building gaps, some hit a building span — natural mix.
     const baseZ = -slot * PROP_SPACING - Math.random() * 7;
-    // Props sit in the MIDDLE of the sidewalk (4.0–4.5m). Front building
-    // edge is at 5.5m, so a tree with 0.55m foliage radius (3.45–5.05m
-    // span) has 0.45m clearance from the road AND 0.45m from the building
-    // wall. No more "trees inside houses / over the road" — Oscar.
+    // Push props further toward the buildings so 3D tree canopies (up to
+    // ~1.4m radius) don't spill over the road. Sidewalk runs from 3.75 to
+    // ~8m; buildings sit at ~4.8 inner edge, so a prop at x=5.2 with a
+    // canopy of 1.4m extends 3.8→6.6 — clear of road (>3.5) and inside
+    // the building wall. Oscar: "ağaçlar yola çıkmasın".
     g.position.set(
-      side * (TRACK_WIDTH / 2 + 0.5 + Math.random() * 0.5),
+      side * (TRACK_WIDTH / 2 + 1.7 + Math.random() * 0.3),
       0,
       baseZ
     );
@@ -956,7 +957,7 @@ export class World {
     // Bridge clearance: hide any prop sitting inside ±15m of a bridge.
     // Otherwise lampposts/trees stab through the bridge deck — Oscar:
     // "ağaç köprünün içinden çıkar mı, mantıksızlık".
-    const BRIDGE_CLEARANCE = 15;
+    const BRIDGE_CLEARANCE = 28;
     for (let i = this.props.length - 1; i >= 0; i--) {
       const p = this.props[i];
       p.group.position.z += dz;
