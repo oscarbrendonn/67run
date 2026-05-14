@@ -11,15 +11,21 @@
  */
 // Anything that looks like local network (localhost, 127.x, or 192.168.x
 // LAN IP) loads assets from local /models/ — fast, no internet needed.
-// Real internet hosts hit the jsDelivr CDN serving 67run-assets repo.
+// Electron (protocol = "file:") and real internet hosts both hit the
+// jsDelivr CDN serving the 67run-assets repo. Without this Electron
+// would try to read /models/ from inside the .app bundle and find nothing.
 const h =
   typeof window !== "undefined" ? window.location.hostname : "";
+const proto =
+  typeof window !== "undefined" ? window.location.protocol : "";
+const isElectronFile = proto === "file:";
 const isLocalish =
-  h === "localhost" ||
-  h === "127.0.0.1" ||
-  h.startsWith("192.168.") ||
-  h.startsWith("10.") ||
-  h === "";
+  !isElectronFile &&
+  (h === "localhost" ||
+    h === "127.0.0.1" ||
+    h.startsWith("192.168.") ||
+    h.startsWith("10.") ||
+    h === "");
 
 export const ASSET_BASE = isLocalish
   ? ""

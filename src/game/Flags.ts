@@ -270,8 +270,9 @@ function drawStar(
 }
 
 /** Builds a flagpole prop with the given country's flag.
- *  BIG so the player notices it — Oscar said the old flags were invisible.
- *  Pole 9.5m tall, flag 3.0×2.0m (was 6.2 / 1.8×1.2). */
+ *  HUGE (welcome-gate scale) so it's visible from 350m through fog —
+ *  player sees the country flag growing as they approach the boundary.
+ *  Pole 16m, flag 5.5×3.5m. Oscar: "uzaktan bayrağıyla karşılanacak". */
 export function buildFlagPole(themeId: string): THREE.Group {
   const g = new THREE.Group();
   const poleMat = new THREE.MeshStandardMaterial({
@@ -280,25 +281,25 @@ export function buildFlagPole(themeId: string): THREE.Group {
     roughness: 0.3,
   });
   const pole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.09, 0.13, 9.5, 10),
+    new THREE.CylinderGeometry(0.14, 0.20, 16.0, 10),
     poleMat
   );
-  pole.position.y = 4.75;
+  pole.position.y = 8.0;
   g.add(pole);
   // Pole top ball — bigger, more visible from distance
   const ball = new THREE.Mesh(
-    new THREE.SphereGeometry(0.2, 12, 10),
+    new THREE.SphereGeometry(0.32, 12, 10),
     new THREE.MeshStandardMaterial({
       color: 0xffd257,
       metalness: 0.8,
       roughness: 0.2,
     })
   );
-  ball.position.y = 9.6;
+  ball.position.y = 16.2;
   g.add(ball);
-  // Flag itself — 3×2m, three times the area
+  // Flag itself — 5.5×3.5m, dramatically larger than before
   const tex = flagTexture(themeId);
-  const flagGeom = new THREE.PlaneGeometry(3.0, 2.0, 22, 14);
+  const flagGeom = new THREE.PlaneGeometry(5.5, 3.5, 28, 18);
   // Ripple effect — displace vertices in +X direction along y
   const pos = flagGeom.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < pos.count; i++) {
@@ -316,7 +317,7 @@ export function buildFlagPole(themeId: string): THREE.Group {
     })
   );
   // Anchor flag at its left edge to the pole — flag flies to +x
-  flag.position.set(1.55, 8.0, 0);
+  flag.position.set(2.85, 13.5, 0);
   g.add(flag);
   // Base — bigger, more presence
   const base = new THREE.Mesh(

@@ -498,20 +498,20 @@ export class Game {
     const inSegment = this.distance % SEG;
     const distToBoundary = SEG - inSegment;
 
-    // Pre-spawn next country's landmark + welcome flags while the player
-    // is still in the current country, so the upcoming city skyline rises
-    // out of the fog from FAR away instead of popping in at the boundary.
-    // Fires once per segment, ~180m before the boundary (well inside fog
-    // range but far enough that the landmark visibly approaches).
-    const PRE_SPAWN_DISTANCE = 180;
+    // Pre-spawn next country's landmark + welcome flags FAR ahead so the
+    // player visibly approaches the next country — flag from a distance,
+    // landmark rising out of the fog, then walks through the gate.
+    // Oscar: "uzaktan ülkeye girdiğini gösterecek".
+    const PRE_SPAWN_DISTANCE = 350;
     if (!this.nextThemePreSpawned && distToBoundary < PRE_SPAWN_DISTANCE) {
       const nextIdx = (this.themeIndex + 1) % THEMES.length;
       const next = THEMES[nextIdx];
-      // Landmark sits ~250m ahead of the player; once the player crosses
-      // the boundary (in ~180m), it's 70m ahead — same final approach as
-      // the old behaviour, but visible during the build-up.
+      // Landmark sits ~420m ahead of the player when first spawned, walks
+      // toward camera as player runs. By the time they cross the boundary
+      // it's 70m ahead — dramatic approach instead of an instant pop.
       this.world.spawnLandmark(next, -(distToBoundary + 70), -1);
-      // Welcome-gate flags right at the country line.
+      // Welcome-gate flag pair right at the country line. Visible from
+      // 350m away (just past fog far) so it grows as you approach.
       this.world.spawnFlagPair(next, -distToBoundary);
       this.nextThemePreSpawned = true;
     }
