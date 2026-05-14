@@ -307,14 +307,22 @@ export class Game {
   }
 
   private setupPostProcessing() {
-    // Perf-mode: skip all heavy post effects (bloom, hueSat, vignette, bc).
-    // Keep ONLY SMAA so edges still look clean — it's almost free GPU-wise
-    // compared to the others. Big FPS win on integrated GPUs (Mac mini).
-    // Oscar: "kasıyor, gerçek-zamanlı gölge + bloom kapat" — done.
+    // Plan A route: real-time shadow stays OFF (blob shadow does the job),
+    // but bring back the cheap color effects so the scene doesn't look
+    // washed out. Bloom + hueSat are the visible "Subway Surfers candy"
+    // — keep them. Drop vignette + brightness/contrast (less visible).
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
+    const bloom = new BloomEffect({
+      intensity: 0.30,
+      luminanceThreshold: 0.85,
+      luminanceSmoothing: 0.25,
+      kernelSize: KernelSize.SMALL,
+      mipmapBlur: true,
+    });
+    const hueSat = new HueSaturationEffect({ saturation: 0.28 });
     const smaa = new SMAAEffect({ preset: SMAAPreset.LOW });
-    this.composer.addPass(new EffectPass(this.camera, smaa));
+    this.composer.addPass(new EffectPass(this.camera, bloom, hueSat, smaa));
   }
 
   /** Called from main.ts after assetsReady resolves — rebuilds every
