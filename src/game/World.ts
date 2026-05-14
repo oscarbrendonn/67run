@@ -528,7 +528,10 @@ export class World {
     g.traverse((c) => {
       const m = c as THREE.Mesh;
       if (m.isMesh) {
-        m.castShadow = true;
+        // Perf: props don't cast shadows — they're off to the side of the
+        // running lane and shadows from ~20 props per frame cost more than
+        // they add visually. Only the character + obstacles need shadow casting.
+        m.castShadow = false;
         m.receiveShadow = true;
       }
     });
@@ -585,7 +588,11 @@ export class World {
     g.traverse((c) => {
       const m = c as THREE.Mesh;
       if (m.isMesh) {
-        m.castShadow = true;
+        // Perf: only the FRONT-row buildings (closest to the player) cast
+        // shadows. Mid + back rows just receive — they're far enough that
+        // their shadows would be off-screen or behind front buildings.
+        // Cuts ~50 shadow-caster meshes per frame.
+        m.castShadow = isFrontRow;
         m.receiveShadow = true;
       }
     });

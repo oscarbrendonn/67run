@@ -14,7 +14,7 @@
     "appId": "com.sixtyseven.runner",
     "productName": "67 Runner",
     "files": [
-      "dist/**/*",
+      "dist/index.html",
       "electron/**/*",
       "package.json"
     ],

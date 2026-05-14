@@ -306,11 +306,14 @@ export class Game {
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
+    // Perf: smaller bloom kernel + raised threshold = ~half the GPU cost
+    // of full-quality bloom. Visually nearly identical for our scene
+    // because only bright lamps / neon hit the threshold anyway.
     const bloom = new BloomEffect({
-      intensity: 0.45,                  // a touch softer than before
-      luminanceThreshold: 0.75,
-      luminanceSmoothing: 0.28,
-      kernelSize: KernelSize.LARGE,
+      intensity: 0.35,
+      luminanceThreshold: 0.85,
+      luminanceSmoothing: 0.25,
+      kernelSize: KernelSize.MEDIUM,
       mipmapBlur: true,
     });
 
