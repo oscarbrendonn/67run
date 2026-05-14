@@ -528,9 +528,13 @@ export class Game {
       // toward camera as player runs. By the time they cross the boundary
       // it's 70m ahead — dramatic approach instead of an instant pop.
       this.world.spawnLandmark(next, -(distToBoundary + 70), -1);
-      // Welcome-gate flag pair right at the country line. Visible from
-      // 350m away (just past fog far) so it grows as you approach.
-      this.world.spawnFlagPair(next, -distToBoundary);
+      // Welcome-gate flag pair PAST the boundary (on the new country's
+      // terrain), not at the boundary itself. Otherwise player sees the
+      // Brazil flag while still running on USA road. Now: cross boundary
+      // first → terrain swaps to new country → 50m later run THROUGH
+      // the flag gate that already stands on the new ground.
+      // Oscar: "bayrağı Brezilya kumuyla aynı yerde olsun".
+      this.world.spawnFlagPair(next, -(distToBoundary + 50));
       this.nextThemePreSpawned = true;
     }
 
