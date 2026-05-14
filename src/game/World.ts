@@ -125,6 +125,11 @@ export class World {
   /** Segments whose road-detail still needs rebuilding for the new theme.
    *  Drained 1-2 per frame in `scroll()` so theme switches don't freeze. */
   private roadDetailRebuildQueue: THREE.Group[] = [];
+  /** Indices of buildings/props waiting to be rebuilt for a new theme.
+   *  Drained 3 per frame in scroll() to avoid a sync 78-building rebuild
+   *  hitch on country boundary. */
+  private themeRebuildBuildings: number[] = [];
+  private themeRebuildProps: number[] = [];
   groundMat: THREE.MeshStandardMaterial;
   stripeMat: THREE.MeshStandardMaterial;
   grassMat: THREE.MeshStandardMaterial;
@@ -722,22 +727,49 @@ export class World {
     //  caused by the URL theme not being parsed at init() (now fixed in
     //  Game.ts), NOT by the cycle behavior — so we can return to the
     //  natural fade now.
-    const HORIZON = -60; // anything farther than this from the camera = swap now
+    // QUEUE the rebuild instead of doing all 78 buildings + props in one
+    // tick. The regular scroll() loop drains the queue at ~3 entries/frame
+    // so the visible freeze on country boundaries disappears. Oscar:
+    // "bam diye haritayı değiştiriyorsun, oyun kasıyor".
+    const HORIZON = -60;
+    const buildingsToSwap: number[] = [];
     for (let i = 0; i < this.buildings.length; i++) {
       const old = this.buildings[i];
       if (old.themeId === theme.id) continue;
-      if (old.group.position.z >= HORIZON) continue; // visible — let it scroll past
+      if (old.group.position.z >= HORIZON) continue;
+      buildingsToSwap.push(i);
+    }
+    this.themeRebuildBuildings = buildingsToSwap;
+    const propsToSwap: number[] = [];
+    for (let i = 0; i < this.props.length; i++) {
+      const old = this.props[i];
+      if (old.themeId === theme.id) continue;
+      if (old.slot < 0) continue;
+      if (old.group.position.z >= HORIZON) continue;
+      propsToSwap.push(i);
+    }
+    this.themeRebuildProps = propsToSwap;
+  }
+
+  /** Drain queued theme-rebuild swaps a few per frame so the boundary
+   *  cross never freezes. Called from scroll() each tick. */
+  private drainThemeRebuild() {
+    const PER_FRAME = 3;
+    let budget = PER_FRAME;
+    while (budget-- > 0 && this.themeRebuildBuildings.length > 0) {
+      const i = this.themeRebuildBuildings.shift()!;
+      const old = this.buildings[i];
+      if (!old || old.themeId === this.theme.id) continue;
       const oldZ = old.group.position.z;
       this.scene.remove(old.group);
       const fresh = this.createBuilding(old.slot);
       fresh.group.position.z = oldZ;
       this.buildings[i] = fresh;
     }
-    for (let i = 0; i < this.props.length; i++) {
+    while (budget-- > 0 && this.themeRebuildProps.length > 0) {
+      const i = this.themeRebuildProps.shift()!;
       const old = this.props[i];
-      if (old.themeId === theme.id) continue;
-      if (old.slot < 0) continue; // flag pair — leave it (will cull when off-screen)
-      if (old.group.position.z >= HORIZON) continue;
+      if (!old || old.themeId === this.theme.id || old.slot < 0) continue;
       const oldZ = old.group.position.z;
       this.scene.remove(old.group);
       const fresh = this.createProp(old.slot);
@@ -890,6 +922,9 @@ export class World {
 
   scroll(dz: number, playerZ: number) {
     this.spawnedZ += dz;
+    // Drain queued theme-rebuilds (buildings + props) a few per frame so
+    // country boundaries don't freeze the main thread.
+    this.drainThemeRebuild();
     // Drain a couple of road-detail rebuilds per frame so theme switches
     // don't freeze the main thread. Queue is filled in setTheme().
     if (this.roadDetailRebuildQueue.length > 0) {

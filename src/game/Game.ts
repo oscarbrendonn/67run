@@ -89,6 +89,13 @@ export class Game {
    *  gözükecek, bir anda değişmesin"). Set true after pre-spawn, cleared
    *  on the actual theme switch. */
   private nextThemePreSpawned = false;
+  private nextThemeBlendStarted = false;
+  /** Pending weather mode change — when entering Russia/Japan/UK the
+   *  rain/snow doesn't snap on, it starts a couple seconds AFTER the
+   *  boundary so the spawn rush + theme rebuild doesn't pile up in one
+   *  frame. Oscar: "yağmur başlatıyorsun, oyun kasıyor". */
+  private weatherDelayTimer = 0;
+  private pendingWeather: "snow" | "rain" | "drizzle" | "off" | null = null;
   /** Resolves once the initial theme's GLBs are cached. main.ts awaits
    *  this before calling start() so the player lands in 3D, not in a
    *  primitive scene that swaps to 3D over the first few seconds. */
@@ -414,7 +421,18 @@ export class Game {
       china: "rain",
       // Italy/Australia/Korea = clear days; can adjust later if needed
     };
-    this.weather.setMode(weatherByTheme[theme.id] ?? "off");
+    const targetWeather = weatherByTheme[theme.id] ?? "off";
+    // If turning rain/snow OFF (entering a clear country), do it instantly.
+    // If turning ON, defer by 2.5s so the theme switch + rebuild burst
+    // doesn't share a frame with hundreds of new particle allocations.
+    if (targetWeather === "off") {
+      this.weather.setMode("off");
+      this.pendingWeather = null;
+    } else {
+      this.weather.setMode("off");
+      this.pendingWeather = targetWeather;
+      this.weatherDelayTimer = 2.5;
+    }
     if (!instant) this.ui.showCityBanner(theme);
     this.ui.setCity(theme);
 
@@ -516,15 +534,43 @@ export class Game {
       this.nextThemePreSpawned = true;
     }
 
+    // Start the sky+fog crossfade BEFORE the actual boundary, so the
+    // colors morph gradually as the player approaches the next country.
+    // Without this the player ran in clear-blue sky right up to the line
+    // and then "bam" switched palette in one frame.
+    const COLOR_BLEND_LEAD = 220;
+    if (!this.nextThemeBlendStarted && distToBoundary < COLOR_BLEND_LEAD) {
+      const nextIdx = (this.themeIndex + 1) % THEMES.length;
+      this.beginThemeColorBlend(THEMES[nextIdx]);
+      this.nextThemeBlendStarted = true;
+    }
+
     // Actual theme switch when the player crosses the boundary
     const target = Math.floor(this.distance / SEG) % THEMES.length;
     if (target !== this.themeIndex) {
       this.themeIndex = target;
       this.nextThemePreSpawned = false;
+      this.nextThemeBlendStarted = false;
+      // Hot-swap world spawns + UI for the new theme. Color blend was
+      // already started 220m ago by beginThemeColorBlend, so the
+      // applyTheme call here just refreshes spawns + shows the banner.
       this.applyTheme(THEMES[target]);
       // Landmark + flags already spawned ahead by the pre-spawn block.
       this.nextLandmarkZ = -10000;
     }
+  }
+
+  /** Begin the slow sky/fog/light crossfade toward `next`. Called ~220m
+   *  before the boundary so the visible palette is already morphed by the
+   *  time the player steps into the new country. */
+  private beginThemeColorBlend(next: Theme) {
+    const currentPalette: Theme = this.themeBlend.to
+      ? this.snapshotCurrentPalette(this.themeBlend.to)
+      : next;
+    this.themeBlend.from = currentPalette;
+    this.themeBlend.to = next;
+    this.themeBlend.t = 0;
+    this.themeBlend.active = true;
   }
 
   private maybeSpawnLandmark() {
@@ -685,6 +731,14 @@ export class Game {
     this.checkLevelUp();
     this.checkThemeSwitch();
     this.updateThemeBlend(dt);
+    // Pending weather (rain/snow) — wait a bit after theme switch then fire
+    if (this.pendingWeather && this.weatherDelayTimer > 0) {
+      this.weatherDelayTimer -= dt;
+      if (this.weatherDelayTimer <= 0) {
+        this.weather.setMode(this.pendingWeather);
+        this.pendingWeather = null;
+      }
+    }
   }
 
   private onHit() {
