@@ -6,3 +6,4 @@ dist
 
 # Models served via CDN (separate repo: 67run-assets)
 public/models/
+dist/models

@@ -9,11 +9,13 @@
  * the local `public/models/` folder so iteration is instant. We pick this
  * via the dev origin (5173) so production builds still hit the CDN.
  */
-// Anything that looks like local network (localhost, 127.x, or 192.168.x
-// LAN IP) loads assets from local /models/ — fast, no internet needed.
-// Electron (protocol = "file:") and real internet hosts both hit the
-// jsDelivr CDN serving the 67run-assets repo. Without this Electron
-// would try to read /models/ from inside the .app bundle and find nothing.
+// Asset routing has 3 modes:
+//   1. Electron (file: protocol) → use the bundled /models/ folder inside
+//      the .app. Index.html is at file:///path/to/dist/index.html so the
+//      base is its parent directory. Zero network at runtime.
+//   2. Local dev (vite at localhost / LAN IP) → use empty base so URLs
+//      resolve to vite's /models/ (public folder).
+//   3. Production web (oscarbrendonn.github.io/...) → jsDelivr CDN.
 const h =
   typeof window !== "undefined" ? window.location.hostname : "";
 const proto =
@@ -27,6 +29,15 @@ const isLocalish =
     h.startsWith("10.") ||
     h === "");
 
-export const ASSET_BASE = isLocalish
-  ? ""
-  : "https://cdn.jsdelivr.net/gh/oscarbrendonn/67run-assets@main";
+function computeBase(): string {
+  if (isElectronFile) {
+    // Strip the trailing /index.html so URLs like `${ASSET_BASE}/models/...`
+    // resolve to the sibling models/ folder inside the app bundle.
+    const href = typeof window !== "undefined" ? window.location.href : "";
+    return href.replace(/\/[^/]*$/, "");
+  }
+  if (isLocalish) return "";
+  return "https://cdn.jsdelivr.net/gh/oscarbrendonn/67run-assets@main";
+}
+
+export const ASSET_BASE = computeBase();

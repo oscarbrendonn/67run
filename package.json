@@ -15,9 +15,11 @@
     "productName": "67 Runner",
     "files": [
       "dist/index.html",
+      "dist/models/**/*",
       "electron/**/*",
       "package.json"
     ],
+    "asar": false,
     "mac": {
       "category": "public.app-category.games",
       "target": [{ "target": "dir", "arch": ["arm64"] }]
