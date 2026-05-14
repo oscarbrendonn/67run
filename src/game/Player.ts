@@ -41,6 +41,8 @@ export class Player {
   private bikeRig: BikeRig | null = null;
   private combinedBike: THREE.Group | null = null;
   private bikeLeanZ = 0; // smoothed lane lean for the bike
+  /** Soft oval under the character — replaces real-time shadow */
+  private blobShadow!: THREE.Mesh;
   // GLB Mav (loaded async — replaces primitive when ready)
   private mavGLB: MavGLB | null = null;
 
@@ -84,6 +86,24 @@ export class Player {
     // runner (Oscar tested on phone and saw "no character at all").
     setPrimVisible(false);
     scene.add(this.root);
+
+    // Blob shadow — flat oval under Mav. Replaces real-time shadow mapping
+    // (which is now disabled in Game.ts for perf). Mimics Subway Surfers'
+    // character shadow exactly: just a soft dark ellipse that scales /
+    // fades with jumps.
+    this.blobShadow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.6, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.4,
+        depthWrite: false,
+      })
+    );
+    this.blobShadow.rotation.x = -Math.PI / 2;
+    this.blobShadow.position.y = 0.02;
+    this.blobShadow.renderOrder = -1;
+    scene.add(this.blobShadow);
 
     this.mavGLB = new MavGLB(scene);
     this.mavGLB.onLoaded(() => {
@@ -303,6 +323,19 @@ export class Player {
     }
 
     this.root.position.y = this.y;
+
+    // Blob shadow follows the player on the ground. Shrinks + fades when
+    // Mav is high in the air (jump / fly / bike), grows back at landing.
+    {
+      const p = this.root.position;
+      this.blobShadow.position.x = p.x;
+      this.blobShadow.position.z = p.z;
+      const h = this.y;                              // height above ground
+      const fall = Math.min(1, h / 3.5);             // 0 on ground, 1 at fly height
+      const scale = 1 - 0.5 * fall;                  // smaller as height grows
+      this.blobShadow.scale.setScalar(scale);
+      (this.blobShadow.material as THREE.MeshBasicMaterial).opacity = 0.4 * (1 - fall * 0.7);
+    }
 
     // Sync GLB Mav transform with root + tick mixer
     if (this.mavGLB && this.mavGLB.loaded) {

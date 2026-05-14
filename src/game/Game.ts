@@ -118,8 +118,10 @@ export class Game {
     // FPS gain is significant on mobile + integrated GPUs.
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Perf-mode: real-time shadow mapping is OFF. We use a blob shadow
+    // (flat oval under Mav) for the character instead — far cheaper.
+    // Subway Surfers does the same — baked/blob shadows only.
+    this.renderer.shadowMap.enabled = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -269,7 +271,9 @@ export class Game {
     // the visual difference is small but the FPS gain is large.
     this.sun = new THREE.DirectionalLight(theme.sunColor, theme.sunIntensity);
     this.sun.position.set(12, 22, 8);
-    this.sun.castShadow = true;
+    // Real-time shadow OFF — see renderer.shadowMap.enabled = false above.
+    // Blob shadow attached to the player handles the visual.
+    this.sun.castShadow = false;
     this.sun.shadow.mapSize.set(512, 512);
     this.sun.shadow.camera.near = 1;
     this.sun.shadow.camera.far = 60;
@@ -303,32 +307,14 @@ export class Game {
   }
 
   private setupPostProcessing() {
+    // Perf-mode: skip all heavy post effects (bloom, hueSat, vignette, bc).
+    // Keep ONLY SMAA so edges still look clean — it's almost free GPU-wise
+    // compared to the others. Big FPS win on integrated GPUs (Mac mini).
+    // Oscar: "kasıyor, gerçek-zamanlı gölge + bloom kapat" — done.
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-
-    // Perf: smaller bloom kernel + raised threshold = ~half the GPU cost
-    // of full-quality bloom. Visually nearly identical for our scene
-    // because only bright lamps / neon hit the threshold anyway.
-    const bloom = new BloomEffect({
-      intensity: 0.35,
-      luminanceThreshold: 0.85,
-      luminanceSmoothing: 0.25,
-      kernelSize: KernelSize.MEDIUM,
-      mipmapBlur: true,
-    });
-
-    const vignette = new VignetteEffect({
-      darkness: 0.28,                   // softer corner darkening
-      offset: 0.30,
-    });
-
-    // Subway-Surfers vibrancy — more saturated colors so primitives + GLBs
-    // read as a stylized cartoon, not flat realism. Slight contrast bump.
-    const hueSat = new HueSaturationEffect({ saturation: 0.32 });
-    const bc = new BrightnessContrastEffect({ contrast: 0.12, brightness: 0.04 });
-    const smaa = new SMAAEffect({ preset: SMAAPreset.MEDIUM });
-
-    this.composer.addPass(new EffectPass(this.camera, bloom, hueSat, bc, vignette, smaa));
+    const smaa = new SMAAEffect({ preset: SMAAPreset.LOW });
+    this.composer.addPass(new EffectPass(this.camera, smaa));
   }
 
   /** Called from main.ts after assetsReady resolves — rebuilds every
